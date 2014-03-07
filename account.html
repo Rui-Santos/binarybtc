@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Binary Trade Simulator &middot; Bootstrap</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <script src="./assets/js/jquery.js"></script>
+    <!-- script src="./assets/js/main.js"></script -->
+    <script src="./assets/js/highstock.js"></script>
+
+  <script src="//code.jquery.com/ui/1.10.4/jquery-ui.js"></script>
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.10.4/themes/smoothness/jquery-ui.css">
+
+    <script src="http://64.90.187.148:3000/socket.io/socket.io.js"></script>
+    <script src="./assets/js/jquery.cycle.all.js"></script>
+    <script src="./assets/js/buzz.min.js"></script>
+    <script src="./assets/js/jquery.easing.1.3.js"></script>
+    <script src="./assets/js/bootstrap-progressbar.js"></script>
+    <script src="./assets/js/bootstrap-transition.js"></script>
+    <script src="./assets/js/bootstrap-alert.js"></script>
+    <script src="./assets/js/bootstrap-modal.js"></script>
+    <script src="./assets/js/bootstrap-dropdown.js"></script>
+    <script src="./assets/js/bootstrap-scrollspy.js"></script>
+    <script src="./assets/js/bootstrap-tab.js"></script>
+    <script src="./assets/js/bootstrap-tooltip.js"></script>
+    <script src="./assets/js/bootstrap-popover.js"></script>
+    <script src="./assets/js/bootstrap-button.js"></script>
+    <script src="./assets/js/bootstrap-collapse.js"></script>
+    <script src="./assets/js/bootstrap-carousel.js"></script>
+    <script src="./assets/js/bootstrap-typeahead.js"></script>
+
+
+<script>
+
+    // Function to add custom formats to dates in milliseconds
+    Date.prototype.customFormat = function(formatString){
+        var YYYY,YY,MMMM,MMM,MM,M,DDDD,DDD,DD,D,hhh,hh,h,mm,m,ss,s,ampm,AMPM,dMod,th;
+        var dateObject = this;
+        YY = ((YYYY=dateObject.getFullYear())+"").slice(-2);
+        MM = (M=dateObject.getMonth()+1)<10?('0'+M):M;
+        MMM = (MMMM=["January","February","March","April","May","June","July","August","September","October","November","December"][M-1]).substring(0,3);
+        DD = (D=dateObject.getDate())<10?('0'+D):D;
+        DDD = (DDDD=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][dateObject.getDay()]).substring(0,3);
+        th=(D>=10&&D<=20)?'th':((dMod=D%10)==1)?'st':(dMod==2)?'nd':(dMod==3)?'rd':'th';
+        formatString = formatString.replace("#YYYY#",YYYY).replace("#YY#",YY).replace("#MMMM#",MMMM).replace("#MMM#",MMM).replace("#MM#",MM).replace("#M#",M).replace("#DDDD#",DDDD).replace("#DDD#",DDD).replace("#DD#",DD).replace("#D#",D).replace("#th#",th);
+
+        h=(hhh=dateObject.getHours());
+        if (h==0) h=24;
+        if (h>12) h-=12;
+        hh = h<10?('0'+h):h;
+        AMPM=(ampm=hhh<12?'am':'pm').toUpperCase();
+        mm=(m=dateObject.getMinutes())<10?('0'+m):m;
+        ss=(s=dateObject.getSeconds())<10?('0'+s):s;
+        return formatString.replace("#hhh#",hhh).replace("#hh#",hh).replace("#h#",h).replace("#mm#",mm).replace("#m#",m).replace("#ss#",ss).replace("#s#",s).replace("#ampm#",ampm).replace("#AMPM#",AMPM);
+    }
+ // var socket = io.connect();
+var autocolor = 1;
+function uitradeico(symbol, direction, manual) {
+  if (manual) { autocolor = 0; }
+  if (direction == 0) {
+       $(".icon"+symbol).removeClass('green').removeClass('glyphicon-arrow-up').addClass('red').addClass('glyphicon-arrow-down');
+    } else {
+        $(".icon"+symbol).removeClass('red').removeClass('glyphicon-arrow-down').addClass('green').addClass('glyphicon-arrow-up');
+    }
+}
+var option = new Array();
+function displayOptions(symbols) {
+  $.each(symbols, function( index, symbol ) {
+    option.push('<div style="margin-top: 15px;">'+
+      '<div class="header">'+symbol+'</div>'+
+      '<div class="numbotron" id="'+symbol+'_container">'+
+      '</div>'+
+      '<div class="controls" id="'+symbol+'">'+
+        '<div class="progress progress'+symbol+' vertical">'+
+            '<div class="progress-bar progress-bar-success" role="progressbar" aria-valuetransitiongoal="0"></div>'+
+        '</div>'+
+            '<div class="btn-group-vertical callputcontainer">'+
+            '<button type="button" class="btn btn-success callbtn call'+symbol+'">'+
+             ' <span class="glyphicon glyphicon-arrow-up"></span>'+
+              'Call'+
+            '</button>'+
+             '<button type="button" class="keystone btn btn-default keystone'+symbol+'" style="font-weight: bold;">'+
+              '--.--'+
+            '</button>'+
+            '<button type="button" class="btn btn-danger putbtn put'+symbol+'">'+
+              'Put'+
+              '<span class="glyphicon glyphicon-arrow-down"></span>'+
+            '</button>'+
+          '</div>'+
+          '<div class="info">'+
+            '<h1>--.-</h1>'+
+            '<span class="hide rawoffer"></span>'+
+           '<!--  <span class="bold rate">Payout if</span><br /> -->'+
+            '<span class="direction bold"><span class="action">If</span>: <span class="option">'+symbol+'</span> <span class="tradeicon glyphicon icon'+symbol+' green glyphicon-arrow-up"></span></span><br />'+
+            '<span class="price">From: <span class="keystone keystone'+symbol+'"> --.--</span> <span class="lock"></span></span><br />'+
+            '<span class="expires bold">In: <span class="expiretime"></span></span>'+
+            '<div class="input-group amount">'+
+                  '<span class="input-group-addon">USD</span>'+
+                  '<input type="text" class="form-control amountfield" style="height: 28px;" placeholder="">'+
+            '</div>'+
+            '<button type="button" class="btn btn-default applytrade apply'+symbol+'">Apply</button>'+
+
+          '</div>'+
+         '</div>'+
+         '<div style="clear:both;"></div>'+
+        '</div>');
+       $(".symbols").append(option[index]);
+      });
+  }
+  $(function () {
+    // $('.box').cycle({ 
+    // fx:     'scrollLeft', 
+    // speed:  300, 
+    // next:   '.box', 
+    // timeout: 0 
+    // });
+    
+    var socket = io.connect('http://64.90.187.148:3000');
+    var user, userid, option, offer, price, expires, direction;
+    var $users = $('#users ul');
+    var $chatOutput = $('.messages');
+    var $chatInput = $('#chat input');
+    var $messagesOutput = $('.messages');
+    var $messagesInput = $('#chat input');
+    var target = 0;
+
+
+
+    var symbols = ["BTCUSD"];
+
+   displayOptions(symbols);
+
+
+    socket.on('hello', function (data) {
+      $('.username').html(data.hello);
+      console.log('hello:', data.hello);
+      user = data.hello;
+      userid = data.id;
+    });
+  var lastbal = 0;
+   socket.on('bankbal', function (data) {
+      $('.bankbal').html(data);
+    });      
+   socket.on('userbal', function (data) {
+      $('.userbal').html('USD '+data);
+      if (lastbal < data) {
+        $('.userbal').effect("highlight", {color: 'rgba(91, 183, 91, 0.15)'}, 1530, "easeInOutCirc");
+      } else if (lastbal > data) {
+        $('.userbal').effect("highlight", {color: 'rgba(218, 79, 73, 0.25)'}, 1530, "easeInOutCirc");
+      }
+      lastbal = data;
+      //console.log(lastbal);
+    });   
+   socket.on('totalcall', function (data) {
+      $('.totalcall').html(data);
+    });   
+   socket.on('totalput', function (data) {
+      $('.totalput').html(data);
+    });   
+   socket.on('option', function (data) {
+      $('.info h1').html(data);
+    });      
+   socket.on('ratios', function (data) {
+      //('.info h1').html(data);
+      $('.progress'+data.symbol+' .progress-bar').attr('aria-valuetransitiongoal', data.ratio);
+      $('.progress'+data.symbol+' .progress-bar').progressbar();
+    });   
+   socket.on('offer', function (data) {
+      $('.rawoffer').html(data);
+      $('.info h1').html(data*100+'%');
+      
+    });    
+   socket.on('servertime', function (data) {
+    var date = new Date(data);
+      $('.servertime').html(date.customFormat( "#hhh#:#mm#:#ss#" ));      
+    }); 
+   // New Trade
+
+
+// Keystones and Prices
+   var lastprice, index, symbol;
+   var price = {};
+   
+  $.each(symbols, function( index, symbol ) {
+   socket.on(symbol+'_price', function (data) {
+    
+    if (price[symbol] > data){
+        $('.keystone'+symbol).addClass('red');
+        $('.keystone'+symbol).removeClass('green');
+       uitradeico(symbol,0); 
+      } else if (price[symbol] < data){
+        $('.keystone'+symbol).addClass('green');
+        $('.keystone'+symbol).removeClass('red');
+        uitradeico(symbol,1);
+      } else {
+        $('.keystone'+symbol).removeClass('red');
+        $('.keystone'+symbol).removeClass('green');
+      }
+      if (price[symbol] != data){
+        $('.controls .price .lock').html('');
+      }
+      $('.keystone'+symbol).html(data);
+      //lastprice = data;
+      price[symbol] = data;
+    });
+      socket.on(symbol+'_chart', function (data) {
+      //console.log(data);
+      loadChart(symbol, data);
+    });
+  });
+
+var publictrades = true;
+   socket.on('activetrades', function (data) {
+    console.log(data);
+    $('.tradesbody').html('');
+    if (data[0] != null) {
+      var tradehtml = '<div class="header">Trades</div>';
+    } else {
+      var tradehtml = '<div class="header">No Trades</div>';
+    }
+    
+           tradehtml = tradehtml + '<table class="table tradestable" id="'+symbol+'trades">';
+              // '<thead>' +
+              //   '<tr>' +
+              //     '<th class="symbol">Symbol</th>' +
+              //     '<th>Trade</th>' +
+              //     '<th>Amount</th>' +
+              //     '<th>End</th>' +
+              //     '<th>Payout</th>';
+        //if (publictrades == true) { tradehtml = tradehtml + '<th>User</th>'; }
+       // tradehtml = tradehtml + '</tr>' +
+              //'</thead>'+
+              tradehtml = tradehtml + '<tbody class="tradesbody">';
+    var index;
+    for (index = 0; index < data.length; ++index) {
+      entry = data[index];
+      if (entry[6] == userid || publictrades == true) {
+        var possiblewin = (+entry[3]+(entry[3]*entry[2]));
+        possiblewin = possiblewin.toFixed(2);
+        var date = new Date(entry[5]);
+        var thistime = date.customFormat( "#hh#:#mm# #AMPM#" );
+        var thisdate = date.customFormat( "#DD#/#MM#/#YYYY#" );
+        entry[1] = Number(entry[1]);
+
+        if (!lastprice) {
+          lastprice = '-.--';
+        }
+
+
+        if (entry[4] == 'Call') {
+          var arrowhtml = '<span class="green glyphicon glyphicon-arrow-up"></span>';
+        } else if (entry[4] == 'Put') {
+          var arrowhtml = '<span class="red glyphicon glyphicon-arrow-down"></span>';
+        }
+
+
+
+
+        tradehtml = tradehtml + '<tr class="bgtransition usertrade" id="trade'+index+'">' +
+                    '<td class="symbol">'+entry[0]+':<span class="keystone keystone'+entry[0]+'">'+price[entry[0]]+'</span></td>'+
+                    '<td>'+arrowhtml+' <span class="direction">'+entry[4]+'</span> from <span class="tradeprice">'+entry[1]+'</span></td>'+
+                    '<td>$'+entry[3]+'</td>'+
+                    '<td title="Expires: '+thisdate+' '+thistime+'">'+thistime+'</td>'+
+                    '<td>$'+possiblewin+'</td>'+
+                    '<td>'+entry[6]+'</td>'+
+                  '</tr>';
+        //     if (lastprice > entry[1]) {
+        //   $('#trade'+index+'').removeClass('redbg').addClass('greenbg');
+        // } else if (lastprice < entry[1]) {
+        //   $('#trade'+index+'').removeClass('greenbg').addClass('redbg');
+        // } else {
+        //   $('#trade'+index+'').removeClass('greenbg').removeClass('redbg');
+        // }
+      }
+    }
+    tradehtml = tradehtml + '</tbody></table>';
+     $('.tradestable').html(tradehtml);
+
+$( ".usertrade" ).each(function( index ) {
+      var tradeid = $(this).attr('id');
+      var symbolprice = $('#'+tradeid+' .keystone').html();
+      var tradeprice = $('#'+tradeid+' .tradeprice').html();
+      var direction = $('#'+tradeid+' .direction').html();
+      //console.log(tradeid + ',' + symbolprice + ',' + tradeprice + ',' + direction);
+      if (direction == 'Put') {
+        if (symbolprice < tradeprice) {
+          $('#'+tradeid+'').effect("highlight", {color: 'rgba(91, 183, 91, 0.15)'}, 1530, "easeInOutCirc");
+        } else if (symbolprice > tradeprice) {
+          $('#'+tradeid+'').effect("highlight", {color: 'rgba(218, 79, 73, 0.25)'}, 1530, "easeInOutCirc");
+        }
+      } else if (direction == 'Call') {
+        if (symbolprice > tradeprice) {
+          $('#'+tradeid+'').effect("highlight", {color: 'rgba(91, 183, 91, 0.15)'}, 1530, "easeInOutCirc");
+        } else if (symbolprice < tradeprice) {
+          $('#'+tradeid+'').effect("highlight", {color: 'rgba(218, 79, 73, 0.25)'}, 1530, "easeInOutCirc");
+        } 
+        }
+   });
+});
+
+    $(".applytrade").click(function(e) {
+          var symbol = $(this).parent().parent().attr('id');
+          var direction = $('#'+symbol+' .info .direction .action').html();
+          var amount = Number($('#'+symbol+' .info .amount .amountfield').val());
+
+          amount = amount.toFixed(2);
+          //user = userid;
+          socket.emit('trade', {
+            symbol : symbol,
+            amount : amount,
+            direction : direction,
+            user : userid
+          });
+          });
+
+
+         socket.on('nexttrade', function (data) {
+           data[1] = ('0' + data[1]).slice(-2)
+            $('.expiretime').html(data[0] + ':' + data[1]);
+          });     
+
+         socket.on('tradeadded', function (symbol) {
+           $('.apply'+symbol).removeClass('btn-warning').addClass('btn-success').html('<span class="glyphicon glyphicon-ok"></span>');
+
+           setTimeout(function(e){
+                $('.call'+symbol).removeClass('btn-default').addClass('btn-success');
+                $('.put'+symbol).removeClass('btn-default').addClass('btn-danger');
+                $('#'+symbol+' .direction .action').html('If');
+                $('.apply'+symbol).removeClass('btn-success').addClass('btn-default').html('Apply');
+            },2000);
+          });      
+
+         socket.on('tradeerror', function (symbol) {
+           $('.apply'+symbol).removeClass('btn-warning').addClass('btn-danger').html('<span  class="glyphicon glyphicon-remove"></span>');
+
+           setTimeout(function(e){
+                $('.apply'+symbol).removeClass('btn-danger').addClass('btn-warning').html('Apply');
+            },2000);
+          });   
+
+
+
+
+// Proto
+    socket.on('listing', function (data) {
+     // console.log('listing:', data);
+      window.users = data; 
+      target = 0;
+      $users.empty();
+      $.each(data, function (index, user) {
+        //console.log(arguments);
+        $users.append('<li>' + user);
+      });
+      $users.find('li:first').addClass('selected');
+    });
+    socket.on('chat', function (message) {
+      console.log('chat:', message); 
+      $messagesOutput.append('<div>' + message);
+      $(".messages").scrollTop($(".messages")[0].scrollHeight);
+    });
+    socket.on('message', function (message) {
+      console.log('message', message); 
+      $messagesOutput.append('<div>' + message +'</div>'); 
+      $(".messages").scrollTop($(".messages")[0].scrollHeight);
+    });
+    
+       function chat(message) {
+      socket.emit('chat', message);   
+    }
+    function message(user, message) {
+      socket.emit('message', {
+        user: user,
+        message: message
+      });
+    }
+
+    $('#chattext').keyup(function(event) {
+      if(event.keyCode == 13) {
+       if ($chatInput.val()) {
+        event.preventDefault();
+        chat($chatInput.val());
+        $chatInput.val('');
+       }
+      }
+    });
+
+    $('#messages form').submit(function (event) {
+      event.preventDefault();
+      message(users[target], $messagesInput.val());
+      $messagesInput.val('');
+    });
+
+    $users.on('click', 'li', function (event) {
+      var $user = $(this);
+      target = $user.index();
+      $users.find('li').removeClass('selected');
+      $user.addClass('selected');
+    });
+});
+
+function loadChart(symbol, data) {
+
+// data = [[time,price],[time,price],[time,price]]
+
+  //var data = btccsvtoarray(data);
+  var last = data[0,0];
+  if (last) {
+  last = last[1];
+  }
+  var first = Number(data.length);
+  first = data[first,1];
+  if (first) {
+  first = first[1];
+  }
+
+  var lasttime = data[0,1];
+  if (lasttime) {
+  lasttime = lasttime[1];  
+  }
+  var firsttime = Number(data.length);
+  firsttime = data[firsttime,0];
+  if (firsttime) {
+  firsttime = firsttime[1];
+  }
+
+
+    // create the chart
+      // she can not be tamed
+    var container = symbol + "_container";
+    var h=new Highcharts.Chart({
+        chart: {
+          renderTo: container,
+          chart: {
+        // Edit chart spacing
+        spacingBottom: 1,
+        spacingTop: 0,
+        spacingLeft: 0,
+        spacingRight: 5
+}
+          //type: 'line'
+        },
+        xAxis: {
+            title : {
+              text : ' '
+            },
+            type: 'datetime',
+            // plotLines : [{
+            //   value : 1393320600,
+            //   color : 'grey',
+            //   width : 1,
+            //   label : {
+            //     text : 'Trade'
+            //   }
+            // }]
+        },
+      yAxis : {
+        title : {
+          text : symbol
+        },
+        // plotLines : [{
+        //   value : 568.6,
+        //   color : 'green',
+        //   width : 1,
+        //   label : {
+        //     text : ' '
+        //   } 
+        // }, {
+        //   value : 568.12,
+        //   color : 'red',
+        //   width : 1,
+        //   label : {
+        //     text : ' '
+        //   }
+        // }]
+      },
+        title : {
+        text : ' '
+        },
+        legend: {
+            enabled: false
+        },
+        plotOptions: {
+          line: {
+            animation: false
+          },
+            series: {
+                lineWidth: 2,
+                marker: {
+                    enabled: false,
+                    radius: 2,
+                    states: {
+                        hover: {
+                            enabled: true
+                        }
+                    }
+                }
+            },
+          },
+       series : [
+       {
+        type : 'line',
+        name : symbol,
+        data : data
+       },
+      //  {
+      //   type : 'flags',
+      //   data : [{
+      //     x : 1393696469543,
+      //     y : 568.12,
+      //     title : " ",
+      //     shape : "url(http://64.90.187.148/assets/img/down.png)",
+      //     text : 'Put at 568.12'
+      //   }, {
+      //     x : 1393696359543,
+      //     y : 568.6,
+      //     title : " ",
+      //     shape : "url(http://64.90.187.148/assets/img/up.png)",
+      //     text : 'Call at 568.6'
+      //   }],
+      //   color : '#5F86B3',
+      //   fillColor : '#5F86B3',
+      //   onSeries : 'dataseries',
+      //   width : 1,
+      //   style : {// text style
+      //     color : 'white'
+      //   },
+      //   states : {
+      //     hover : {
+      //       fillColor : '#395C84' // darker
+      //     }
+      //   }
+      // }
+       // {
+       //      name: 'Range',
+       //      data: ranges,
+       //      type: 'area',
+       //      lineWidth: 0,
+       //    linkedTo: ':previous',
+       //    color: Highcharts.getOptions().colors[0],
+       //    fillOpacity: 0.3,
+       //    zIndex: 0
+       //  }
+        ]
+    });
+
+}
+
+
+
+      $(function() {
+
+// UI Stuff
+          $( ".amountfield" ).keyup(function() {
+          var symbol = $(this).parent().parent().parent().attr('id');
+          var offer = $('#'+symbol+' .info .rawoffer').html();
+          var amount = $('#'+symbol+' .info .amount .amountfield').val();
+          if (amount > 0) {
+          var possiblewin = (+amount+(amount*offer));
+          $('#'+symbol+' .info h1').html("$" + possiblewin.toFixed(2));
+          } else {
+          $('#'+symbol+' .info h1').html(offer * 100 + "%");
+          }
+        });
+
+
+        $(".callbtn").click(function() {
+          var symbol = $(this).parent().parent().attr('id');
+          $('.apply'+symbol).removeClass('btn-default').addClass('btn-warning');
+          $('.put'+symbol).removeClass('btn-danger').addClass('btn-default');
+          $('.call'+symbol).removeClass('btn-default').addClass('btn-success');
+          uitradeico(symbol, 1, 1);
+          $('#'+symbol+' .direction .action').html('Call');
+          //$('.controls .price .lock').html('<span class="glyphicon glyphicon-lock"></span>');
+          var autocolor = 0;
+          var direction = 'call';
+        });
+        $(".putbtn").click(function() {
+          var symbol = $(this).parent().parent().attr('id');
+          $('.apply'+symbol).removeClass('btn-default').addClass('btn-warning');
+          $('.put'+symbol).addClass('btn-danger').removeClass('btn-default');
+          $('.call'+symbol).addClass('btn-default').removeClass('btn-success');
+          uitradeico(symbol, 0, 1);
+         $('#'+symbol+' .direction .action').html('Put');
+          //$('.controls .price .lock').html('<span class="glyphicon glyphicon-lock"></span>');
+          var direction = 'put';
+        });
+      });
+      </script>
+
+    <!-- Le styles -->
+    <link href="http://getbootstrap.com/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="./assets/css/bootstrap.css" rel="stylesheet">
+    <link href="./assets/css/bootstrap-responsive.css" rel="stylesheet">
+    <link href="./assets/css/bootstrap-progressbar-3.1.0.min.css" rel="stylesheet">
+    <link href="./assets/css/main.css" rel="stylesheet">
+
+    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="./assets/js/html5shiv.js"></script>
+    <![endif]-->
+
+    <!-- Fav and touch icons -->
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="./assets/ico/apple-touch-icon-144-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="./assets/ico/apple-touch-icon-114-precomposed.png">
+      <link rel="apple-touch-icon-precomposed" sizes="72x72" href="./assets/ico/apple-touch-icon-72-precomposed.png">
+                    <link rel="apple-touch-icon-precomposed" href="./assets/ico/apple-touch-icon-57-precomposed.png">
+                                   <link rel="shortcut icon" href="./assets/ico/favicon.png">
+ <style>
+ body {
+  margin: 0;
+  padding-top: 0px;
+ }
+.title{
+background: url('http://64.90.187.148/assets/img/bg.jpg');
+background-position: right -550px top -110px;
+width: 100%;
+height: 160px;
+overflow: hidden;
+position: relative;
+
+}
+.coin {
+background-image: url('http://64.90.187.148/assets/img/retro_coin.png');
+height: 64px;
+width: 640px;
+position: absolute;
+top: 52px;
+left:70%;
+display: none;
+}.title .box {
+background: rgba(2, 131, 197, 0.71);
+border: 4px solid rgba(0, 0, 0, 0.8);
+box-shadow: 0px 0px 2px rgba(0, 0, 0, 0.3);
+width: 323px;
+height: 125px;
+position: absolute;
+top: 10%;
+z-index: 2;
+min-width: 300px;
+overflow: hidden;
+}.title .box .slide {
+position: absolute;
+width: 319px;
+height: 117px;
+}.title .box .slide img {
+position: absolute;
+top: 0px;
+left: 0px;
+width: 319px;
+height: 117px;
+}.title .box div .btn-group {
+position: absolute;
+z-index: 5;
+top: 37%;
+left: 28%;
+}
+.lock {
+  opacity: 0.75;
+}
+.tradestable .symbol{
+    width: 200px;
+    overflow: hidden;
+    white-space: nowrap;
+}.half {
+  width: 50%;
+}.floatleft{
+  float:left;
+}.accountinfo {
+padding: 10px;
+margin-top: 1px;
+margin-right: 5px;
+float:right;
+min-width: 68px;
+min-height:42px;
+-webkit-transition: width 2s, height 2s,-webkit-transform 2s;  /* For Safari 3.1 to 6.0 */
+transition: width 2s, height 2s, transform 2s;
+}.userbal {
+  font-weight: bold;
+}
+.header {
+  background: #EEEEEE;
+  color: black;
+  font-size: 21px;
+  padding: 5px 10px;
+  border-bottom: 1px solid #ccc;
+}
+#chat {
+  position: relative;
+  height: 113px;
+}
+#chat input {
+width: 100%;
+background: rgba(0,0,0,0);
+color: white;
+border: 0px;
+border-top: 4px solid rgba(0, 0, 0, 0.8);
+border-radius: 0px;
+outline: none;
+position: absolute;
+bottom: 0px;
+margin: 0px !important;
+padding: 5px !important;
+height: 25px !important;
+font-size: 12px;
+line-height: 13px;
+}.messages {
+color: white;
+margin: 5px;
+height: 80px;
+overflow: scroll;
+font-size: 12px;
+padding: 0px;
+}
+.table>thead>tr>th, .table>tbody>tr>th, .table>tfoot>tr>th, .table>thead>tr>td, .table>tbody>tr>td, .table>tfoot>tr>td {
+padding: 8px;
+line-height: 1.42857143;
+vertical-align: top;
+border-top: 0px solid #FFF;
+}
+
+ </style>
+<script>
+
+var multicoin = new buzz.sound("/assets/wav/multicoin.ogg", {
+    preload: true,
+    loop: false
+});
+
+function isOdd(num) { return num % 2;}
+$(function() {
+
+$("#chattext").focus();
+var symbol = $(".controls").attr('id');
+shake(); // the clouds
+rake(); // the coins
+uitradeico(symbol, 1, 1);
+//enterCall(70);
+
+$('.introbutton').click(function() {
+multicoin.play();
+});
+
+});
+
+
+// sleezy marketing aside...
+function enterCall(val){
+$('#amount').val('');
+output = [],
+sNumber = val.toString();
+for (var i = 0, len = sNumber.length; i < len; i += 1) {
+    output.push(+sNumber.charAt(i));
+}
+var chars = '';
+for (var i = 0, len = output.length; i < len; i += 1) {
+chars = ''+chars +''+ output[i]+'';
+ $('#amount').val(chars);    
+setTimeout(function(){
+    
+         
+    var offer = $('.rawoffer').html();
+    var amount = $("#amount").val();
+    if (amount > 0) {
+      var possiblewin = (+amount+(amount*offer));
+      $(".info h1").html("$" + possiblewin.toFixed(2));
+    } else {
+      $(".info h1").html(offer * 100 + "%");
+    }
+  },2500);
+}
+}
+
+function rake() {
+$(".coin").animate({
+    top: "-=5"
+}, 600, 'linear', function () {
+    $(".coin").animate({
+        top: "+=5"
+    }, 600, 'linear', rake);
+});
+}function shake() {
+  $(".title").animate({
+    'background-position-x': '-=3'
+}, 1000, 'linear', function () {
+     $(".title").animate({
+    'background-position-x': '+=1'
+     }, 1000, 'linear', shake);
+});
+}
+</script>
+  </head>
+
+  <body>
+    <div class="title">
+      <div class="container">
+      <div class="box">
+<!--         <div class="slide"><img src="assets/img/introslide1.png" /></div>
+        <div class="slide"><img src="assets/img/introslide2.png" /></div>
+        <div class="slide"><img src="assets/img/introslide3.png" />
+          <div class="btn-group">
+          <button class="btn btn-warning btn introbutton" id="paynow" type="button">
+            Deposit 50 Gold
+          </button>
+          </div>
+        </div> -->
+
+
+        <div id="chat">
+          <div class="messages">
+          </div>
+          <input type="text" id="chattext" />
+        </div>
+      </div>
+      <div class="coin"></div>
+    </div>
+    </div>
+    <div class="container">
+
+      <div class="masthead">
+        <h3 class="muted"> </h3>
+        <div class="navbar half floatleft">
+          <div class="navbar-inner">
+              <ul class="nav">
+                <li class="active"><a href="#">Featured</a></li>
+                <li><a href="#">Currencies</a></li>
+                <li><a href="#">Stocks</a></li>
+                <li><a href="#">Resources</a></li>
+                <li><a href="#">Markets</a></li>
+              </ul>
+          </div>
+         
+        </div><!-- /.navbar -->
+          <div class="well well-sm accountinfo userbal bold" style="margin-right: 0px"></div>
+          <div class="btn-group accountinfo" style="padding: 0px;">
+    <button type="button" style="height:42px;" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+      <span class="username"></span>
+      <span class="caret"></span>
+    </button>
+    <ul class="dropdown-menu">
+      <li><a href="#">Account</a></li>
+      <li><a href="#">Finances</a></li>
+      <li><a href="#">Security</a></li>
+      <li><a href="#">Logout</a></li>
+    </ul>
+  </div>                 
+          <div class="well well-sm accountinfo servertime"></div>
+      </div>
+
+      <div class="symbols"></div>
+     <!--  <div class="header">+ Add Symbol</div> -->
+      <!-- <hr> 1.613.231.5488 -->
+
+      <!-- Example row of columns -->
+      <div class="row-fluid">
+        <div class="span12 tradestable">
+
+        </div>
+      </div>
+
+      <hr>
+
+      <div class="footer">
+        <p style="float:left;">&copy; Liam Hogan 2014</p>
+        <p style="float:right;">With data from <a href="http://finance.yahoo.com/"><img src="http://icons.iconarchive.com/icons/emey87/social-button/256/yahoo-icon.png" style="width:16px;" /> Yahoo Finance</a>
+<!--         <a href="http://nodejs.org/"><img src="./assets/img/node.png" style="width: 24px;
+margin-right: 10px;float:right;" /></a>
+        <a href="http://blockchain.info/"><img src="./assets/img/bitcoin.png" style="width: 24px;
+margin-right: 10px;float:right;" /></a> --></p>
+      </div>
+
+    </div>
+
+    <!-- Placed at the end of the document so the pages load faster -->
+
+  </body>
+</html>
