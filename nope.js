@@ -295,7 +295,7 @@ http.get(options, function(resp){
     data = data[1];
 
     if(parseInt(data, 10) > 0) { // is this data even numeric?
-      console.log('Polling '+options.host+' for '+symbol+' : '+data);
+      //console.log('Polling '+options.host+' for '+symbol+' : '+data);
       updatePrice(data, force, symbol);
       //price_eurusd = data;
       price[symbol] = data;
@@ -309,7 +309,7 @@ http.get(options, function(resp){
 });
 }// jump over third-party gates
 } else {
-  console.log('Finances API Lag: '+lag);
+  //console.log('Finances API Lag: '+lag);
   lag--;
 }
 }
