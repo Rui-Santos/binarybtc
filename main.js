@@ -58,11 +58,7 @@ var option = new Array();
 function displayOptions(displaysymbols) {
   $.each(displaysymbols, function( index, symbol ) {
     symbol = symbolSwitch(symbol);
-    option.push('<div class="header">'+symbol+'</div><div class="panel'+symbol+'">'+
-      // '<div class="header">'+symbol+'</div>'+
-      '<div class="numbotron" id="'+symbol+'_container">'+
-      '</div>'+
-      '<div class="controls" id="'+symbol+'">'+
+    var open = '<div class="controls" id="'+symbol+'">'+
         '<div class="progress progress'+symbol+' vertical">'+
             '<div class="progress-bar progress-bar-success" role="progressbar" aria-valuetransitiongoal="0"></div>'+
         '</div>'+
@@ -93,6 +89,18 @@ function displayOptions(displaysymbols) {
             '<button type="button" class="btn btn-default applytrade apply'+symbol+'">Apply</button>'+
 
           '</div>'+
+         '</div>';
+    var closed = '<div class="nooffer"><i class="fa fa-lock" style="font-size: 25px;"></i><br />Trading is Closed <br />'+symbol+':<span class="keystone'+symbol+'"></span></div>';
+
+    //if trading is allowed on this symbol
+    var renderoffer = open;
+
+    option.push('<div class="header">'+symbol+'</div><div class="panel'+symbol+'">'+
+      // '<div class="header">'+symbol+'</div>'+
+      '<div class="numbotron" id="'+symbol+'_container">'+
+      '</div>'+
+      '<div class="controls" id="'+symbol+'">'+
+        renderoffer +
          '</div>'+
          '<div style="clear:both;"></div>'+
         '</div>');
@@ -153,13 +161,10 @@ var symbols = ['BTCUSD', 'EURUSD', 'GBPUSD', 'JPYUSD', '^DJI', 'CLJ14.NYM', 'GCJ
       $('.info h1').html(data);
     });      
    socket.on('ratios', function (data) {
-      var index;
-      for (index = 0; index < data.length; ++index) {
-      //('.info h1').html(data);
-      var entry = data[index];
-      console.log(entry[0] + ' ' +entry[1]);
-      $('.progress'+entry[0]+' .progress-bar').attr('aria-valuetransitiongoal', entry[1]);
-      $('.progress'+entry[0]+' .progress-bar').progressbar();
+      for (var key in data) {
+        var obj = data[key]; 
+        $('.progress'+key+' .progress-bar').attr('aria-valuetransitiongoal', obj);
+        $('.progress'+key+' .progress-bar').progressbar();
       }
     });   
    socket.on('offer', function (data) {
@@ -470,7 +475,8 @@ symbol = symbolSwitch(symbol);
           }
         },
         xAxis: {
-            type: 'datetime'
+            type: 'datetime',
+            lineColor: '#eeeeee'
         },
       yAxis : {
         title : {
@@ -585,38 +591,69 @@ $(function() {
 function isOdd(num) { return num % 2;}
 $(function() {
 // page loaded
+var headercounter = 0;
 
+function showSymbols(){
+  $(".financestray").css('height', '0px');
+  $(".accounttray").css('height', '0px');    
+  $(".announcedanger").css('height', '0px');
+  $(".announcesuccess").css('height', '0px');
+  $(".linktray").css('height', 30);
+}
+function showAccount() {
+  $(".accounttray").css('height', 30);
+  $(".announcedanger").css('height', '0px');
+  $(".announcesuccess").css('height', '0px');
+  $(".financestray").css('height', '0px');
+  $(".linktray").css('height', '0px');
+}
+function showFinances() {
+  $(".accounttray").css('height', '0px');    
+  $(".announcedanger").css('height', '0px');
+  $(".announcesuccess").css('height', '0px');
+  $(".financestray").css('height', 30);
+  $(".linktray").css('height', '0px'); 
+}
+
+  $('.header').click(function(e) {
+    e.preventDefault();
+    $(this).disableSelection();
+    $(this).next().toggleClass('hideme');
+  });
 
   $(".btnlogo").click(function () {
-    $(".financestray").css('height', '0px');
-    $(".accounttray").css('height', '0px');    
-    $(".announcedanger").css('height', '0px');
-    $(".announcesuccess").css('height', '0px');
-    $(".linktray").css('height', 30);
+    headercounter = 0;
+    showSymbols();
   });
 
   $(".btnuser").click(function () {
-    $(".accounttray").css('height', 30);
-    $(".financestray").css('height', '0px');
-    $(".linktray").css('height', '0px');
+    if (headercounter != 1) {
+    headercounter = 1;
+    showAccount();
+    } else {
+    showSymbols();
+    headercounter = 0;
+    }
   });
 
   $(".btnfinance").click(function () {
-    $(".accounttray").css('height', '0px');    
-    $(".announcedanger").css('height', '0px');
-    $(".announcesuccess").css('height', '0px');
-    $(".financestray").css('height', 30);
-    $(".linktray").css('height', '0px');
+    if (headercounter != 2) {
+    headercounter = 2;
+    showFinances();
+    } else {
+    showSymbols();
+    headercounter = 0;
+    }
   });
 
-function accountsucsess(msg) {
+function showSuccess() {
     $(".financestray").css('height', '0px');
     $(".accounttray").css('height', '0px');    
     $(".announcedanger").css('height', '0px');
     $(".linktray").css('height', '0px');
     $(".announcesuccess").css('height', 30);
 }
-function accountdanger(msg) {
+function showDanger() {
     $(".financestray").css('height', '0px');
     $(".accounttray").css('height', '0px');    
     $(".announcesuccess").css('height', '0px');

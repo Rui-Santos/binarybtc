@@ -167,8 +167,8 @@ function addTrade(symbol, amount, direction, user, socket) {
       if (puts[symbol]) { puts[symbol]++; }else {puts[symbol] = 1}
       totalput[symbol] = Number((+totalput[symbol] + amount));
     }
-    ratio[symbol] = Number((+calls[symbol] / (puts[symbol] + calls[symbol])) * 100);
-
+    var t = Number(totalcall[symbol]) + Number(totalput[symbol]);
+    ratio[symbol] = (Number(totalcall[symbol]) / Number(t) * 100);
     var valueToPush = new Array();
     valueToPush[0] = symbol;
     valueToPush[1] = price[symbol];
@@ -191,10 +191,10 @@ function addTrade(symbol, amount, direction, user, socket) {
 function checknextTrade() {
       var nexttrade = new Date();
       var mins = nexttrade.getMinutes();
-      mins = (60-mins) % 30;
+      mins = (59-mins) % 30;
       var secs = nexttrade.getSeconds();
       if (secs != 60){
-      secs = (60-secs) % 60;
+      secs = (59-secs) % 60;
       } else {
       secs = 00;
       }
@@ -392,7 +392,7 @@ var Pageview = mongoose.model('Pageview', schema);
 io.sockets.on('connection', function (socket) {   
 var ipaddress = socket.handshake.address; //ipaddress.address/ipaddress.port
 
-// Proto - Log the connection
+// Log the connection
 var pageload = new Pageview({ 
   ip: ipaddress.address,
   time: time
@@ -441,6 +441,7 @@ socket.emit('activetrades', trades);
     if (trades) {
     socket.emit('activetrades', trades);
     }
+        socket.emit('ratios', ratio);
       checknextTrade();
   },999);
 
