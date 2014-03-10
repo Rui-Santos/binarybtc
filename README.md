@@ -4,7 +4,7 @@ Bitcoin Binary Options
 Dependencies
 ---------------------
 
-Dependencies for Node.js
+Dependencies for installing Node.js
 
 >sudo add-apt-repository ppa:chris-lea/node.js
 
