@@ -53,7 +53,6 @@ var bank = 100;
 var put = 0;
 var call = 0;
 
-var trade_every = 1800; // seconds 
 var offer = 0.75;
 var expires = '30 Minutes';
 var price = {};
@@ -159,7 +158,6 @@ function addTrade(symbol, amount, direction, user, socket) {
     amount = Number(amount);
     if (userbalance[user] >= amount) {
     var now = time;
-    var offer = 0.75;
     userbalance[user] = round((userbalance[user]-amount), 2);
     console.log('New trade:'+user +':'+ symbol+':'+direction+':'+amount);
     if (direction == 'Call') {
