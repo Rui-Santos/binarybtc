@@ -1,9 +1,0 @@
-{
-  "name": "btc-binary",
-  "description": "Satoshi binary trading",
-  "version": "0.0.1",
-  "private": false,
-  "dependencies": {
-    "express": "3.4.8"
-  }
-}
