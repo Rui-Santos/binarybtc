@@ -4,11 +4,18 @@ var fs = require('fs')
   , http = require('http')
   , express = require('express')
   , nowjs = require("now")
+  , mongoose = require('mongoose')
   , StringDecoder = require('string_decoder').StringDecoder
   , port = 8080;
 
 
 // in no particular order...
+
+// Database connect
+mongoose.connect('mongodb://localhost/test');
+
+
+
 
 
 // Webserver
@@ -19,11 +26,26 @@ var app = express();
 var server = app.listen(port, function() {
     console.log('Listening on port %d', server.address().port);
 });
-app.use(express.static(path.join(__dirname, '')));
+//app.use(express.static(path.join(__dirname, '')));
 
-  app.get('/', function(req, res) {
-    res.render('index.html'); // load the index.ejs file
-  });
+app.use(express.static(__dirname + ''));
+
+app.get('/sym/:id', function(req, res, next){
+  res.send(req.params.id);
+  //res.render('index.html');
+});
+
+// app.get('/', function(req, res){
+//   res.render('index.html');
+// });
+// simple logger
+// app.use(function(req, res, next){
+//   console.log('%s %s', req.method, req.url);
+//   next();
+// });
+
+
+
 
 
 // Tradeserver
@@ -46,7 +68,7 @@ var userbalance = new Array();
 var time = 0;
 var clock = setInterval(function() {
   time = new Date().getTime();
-  console.log(Date(time));
+  //console.log(Date(time));
   io.sockets.emit('servertime', time);
 }, 1000);
 
@@ -171,7 +193,7 @@ function addTrade(symbol, amount, direction, user, socket) {
 function checknextTrade() {
       var nexttrade = new Date();
       var mins = nexttrade.getMinutes();
-      mins = (60-mins) % 1;
+      mins = (60-mins) % 30;
       var secs = nexttrade.getSeconds();
       if (secs != 60){
       secs = (60-secs) % 60;
@@ -364,10 +386,27 @@ for (index = 0; index < symbols.length; ++index) {
     // }
 }, 4000);
 
+// Setup database schemas and models
+var schema = new mongoose.Schema({ ip: 'string', time: 'string' });
+var Pageview = mongoose.model('Pageview', schema);
+
+// User Connects
+io.sockets.on('connection', function (socket) {   
+var ipaddress = socket.handshake.address; //ipaddress.address/ipaddress.port
+
+// Proto - Log the connection
+var pageload = new Pageview({ 
+  ip: ipaddress.address,
+  time: time
+});
+pageload.save(function (err) {
+  if (err) // ...
+  console.log(ipaddress.address+':'+ipaddress.port+' connected');
+});
+
 
 //Send user current data on connect
-io.sockets.on('connection', function (socket) { 
-for (index = 0; index < symbols.length; ++index) {
+for (index = 0; index < symbols.length; ++index) { 
     io.sockets.emit(symbols[index]+'_price', price[symbols[index]]);
     io.sockets.emit(symbols[index]+'_chart', chart[symbols[index]]);
 }
@@ -409,11 +448,9 @@ socket.emit('activetrades', trades);
 
 // open sockets to chrome
   socket.emit('hello', { hello: myName, id: myNumber });
-  io.sockets.emit('bankbal', bank);
  
   io.sockets.emit('totalcall', call);
   io.sockets.emit('totalput', put);
-
 
   socket.emit('symbols', symbols);
   //io.sockets.emit('option', symbol);
@@ -429,6 +466,7 @@ socket.emit('activetrades', trades);
       users[data.user].emit('message', myName + '-> ' + data.message); 
   });
   
+  // remove user from ram on disconnect
   socket.on('disconnect', function () {
     users[myName] = null;
     userbalance[myNumber] = null;
@@ -437,7 +475,7 @@ socket.emit('activetrades', trades);
   });
 });
 
-// important?
+// probably important?
 var exec = require('child_process').exec;
 
 // Function to add custom formats to dates in milliseconds
