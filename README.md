@@ -26,6 +26,7 @@ Install script dependencies with NPM
 > mongoose
 > socket.io
 > StringDecoder
+> bitcoin
 
 Connection
 ---------------------
