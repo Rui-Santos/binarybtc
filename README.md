@@ -4,22 +4,28 @@ Bitcoin Binary Options
 Dependencies
 ---------------------
 
+Dependencies for Node.js
+
 >sudo add-apt-repository ppa:chris-lea/node.js
 
 >sudo apt-get update 
 
+Install MongoDB, NPM, Node.js, and Python dependencies if needed
+
 >sudo apt-get install python-software-properties  mongodb-10gen nodejs npm
+
+Install script dependencies with NPM
 
 >npm install 
 >fs
->, url
->, path
->, http
->, express
->, nowjs
->, mongoose
->, socket.io
->, StringDecoder
+> url
+> path
+> http
+> express
+> nowjs
+> mongoose
+> socket.io
+> StringDecoder
 
 Connection
 ---------------------
