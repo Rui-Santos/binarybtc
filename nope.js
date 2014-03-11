@@ -13,10 +13,25 @@ var fs = require('fs')
 
 // Database connect
 mongoose.connect('mongodb://localhost/test');
+var db = mongoose.connection;
+db.on('error', console.error.bind(console, 'connection error:'));
+db.once('open', function callback () {
+  console.log('Database connected on port 27017');
+});
 
+// Setup database schemas and models
+var schema = new mongoose.Schema({ ip: 'string', time: 'string' });
+var Pageviews = mongoose.model('pageviews', schema);
+var schema = new mongoose.Schema({ symbol: 'string', price: 'string', offer: 'string', amount: 'string', direction: 'string', time: 'string', user: 'string' });
+var Activetrades = mongoose.model('activetrades', schema);
 
-
-
+// Empty temporary database
+Pageviews.remove({}, function(err) {
+  if (err) console.log(err);  
+});
+Activetrades.remove({}, function(err) {
+  if (err) console.log(err);  
+});
 
 // Webserver
 var io = require('socket.io').listen(3000);
@@ -27,10 +42,20 @@ var server = app.listen(port, function() {
     console.log('Listening on port %d', server.address().port);
 });
 //app.use(express.static(path.join(__dirname, '')));
+app.use("/", express.static(__dirname + '/views'));
+app.get('/', function(req,res) {
+  res.sendfile('views/index.html');
+});
 
-app.use(express.static(__dirname + ''));
-
-app.get('/sym/:id', function(req, res, next){
+app.get('/symbol/:id', function(req, res, next){
+  res.send(req.params.id);
+  //res.render('index.html');
+});
+app.get('/trade/:id', function(req, res, next){
+  res.send(req.params.id);
+  //res.render('index.html');
+});
+app.get('/user/:id', function(req, res, next){
   res.send(req.params.id);
   //res.render('index.html');
 });
@@ -132,28 +157,10 @@ function trade() {
   trades = [];//empty the trades array
   console.log('$'+bank);
 }
+
+
 function addTrade(symbol, amount, direction, user, socket) {
-    // switch out illigal characters
-    switch (symbol) {
-      case 'DOW':
-        symbol = '^DJI'
-      break;
-      case 'OIL':
-        symbol = 'CLJ14.NYM'
-      break;
-      case 'GOLD':
-        symbol = 'GCJ14.CMX'
-      break;
-      case 'SP500':
-        symbol = '^GSPC'
-      break;
-      case 'NASDAQ':
-        symbol = '^IXIC'
-      break;      
-      case 'SILVER':
-        symbol = 'SLV'
-      break;
-    }
+  symbol = symbolswitch(symbol);
   if (direction == 'Call' || direction == 'Put') {
     amount = Number(amount);
     if (userbalance[user] >= amount) {
@@ -169,6 +176,19 @@ function addTrade(symbol, amount, direction, user, socket) {
     }
     var t = Number(totalcall[symbol]) + Number(totalput[symbol]);
     ratio[symbol] = (Number(totalcall[symbol]) / Number(t) * 100);
+
+    var dbactivetrades = new Activetrades({ 
+      symbol: symbol,
+      price: price[symbol],
+      offer: offer,
+      amount: amount,
+      direction: direction,
+      time: now,
+      user: user
+    });
+    dbactivetrades.save(function (err) {
+    });
+
     var valueToPush = new Array();
     valueToPush[0] = symbol;
     valueToPush[1] = price[symbol];
@@ -208,9 +228,7 @@ function checknextTrade() {
 }
 
 
-function isNumber(n) {
-  return !isNaN(parseFloat(n)) && isFinite(n);
-}
+
 
 function getUsers () {
    var userNames = [];
@@ -384,21 +402,17 @@ for (index = 0; index < symbols.length; ++index) {
     // }
 }, 4000);
 
-// Setup database schemas and models
-var schema = new mongoose.Schema({ ip: 'string', time: 'string' });
-var Pageview = mongoose.model('Pageview', schema);
-
 // User Connects
-io.sockets.on('connection', function (socket) {   
+io.sockets.on('connection', function (socket) {
 var ipaddress = socket.handshake.address; //ipaddress.address/ipaddress.port
 
 // Log the connection
-var pageload = new Pageview({ 
+var pageload = new Pageviews({ 
   ip: ipaddress.address,
   time: time
 });
 pageload.save(function (err) {
-  if (err) // ...
+  //if (err) // ...
   console.log(ipaddress.address+':'+ipaddress.port+' connected');
 });
 
@@ -473,6 +487,36 @@ socket.emit('activetrades', trades);
     io.sockets.emit('listing', getUsers());
   });
 });
+
+
+function isNumber(n) {
+  return !isNaN(parseFloat(n)) && isFinite(n);
+}
+
+function symbolswitch(symbol){
+      // switch out illigal characters
+    switch (symbol) {
+      case 'DOW':
+        symbol = '^DJI'
+      break;
+      case 'OIL':
+        symbol = 'CLJ14.NYM'
+      break;
+      case 'GOLD':
+        symbol = 'GCJ14.CMX'
+      break;
+      case 'SP500':
+        symbol = '^GSPC'
+      break;
+      case 'NASDAQ':
+        symbol = '^IXIC'
+      break;      
+      case 'SILVER':
+        symbol = 'SLV'
+      break;
+    }
+  return symbol;
+}
 
 // probably important?
 var exec = require('child_process').exec;
