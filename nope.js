@@ -11,6 +11,8 @@ var fs = require('fs')
 
 // in no particular order...
 
+
+
 // Database connect
 mongoose.connect('mongodb://localhost/test');
 var db = mongoose.connection;
@@ -24,6 +26,21 @@ var schema = new mongoose.Schema({ ip: 'string', time: 'string' });
 var Pageviews = mongoose.model('pageviews', schema);
 var schema = new mongoose.Schema({ symbol: 'string', price: 'string', offer: 'string', amount: 'string', direction: 'string', time: 'string', user: 'string' });
 var Activetrades = mongoose.model('activetrades', schema);
+
+var User = require('user-model');
+
+
+function userFetch(username, password) {
+// fetch user and test password verification
+User.findOne({ username: username }, function(err, user) {
+    if (err) throw err;
+
+     // test a matching password
+    user.comparePassword(password, function(err, isMatch) {
+         if (err) throw err;
+    });
+});
+}
 
 // Empty temporary database
 Pageviews.remove({}, function(err) {
@@ -55,9 +72,35 @@ app.get('/trade/:id', function(req, res, next){
   res.send(req.params.id);
   //res.render('index.html');
 });
-app.get('/user/:id', function(req, res, next){
-  res.send(req.params.id);
-  //res.render('index.html');
+app.get('/adduser/:username/:password/:email', function(req, res, next){
+  // create a user a new user
+  var newUser = new User({
+      username: req.params.username,
+      password: req.params.password,
+      email: req.params.email
+  });
+  // save user to database
+  newUser.save(function(err) {
+      if (err) {
+        switch(err.code){
+          case 11000:
+          res.send('Username Taken');
+          break
+          default:
+          res.send(err);
+        }
+        
+      } else {
+        res.send('OK');
+      }
+  });
+});
+app.get('/adduser/:username/:password/', function(req, res, next){
+  res.send('Specify an Email');
+});app.get('/adduser/:username/', function(req, res, next){
+  res.send('Specify a Password and Email');
+});app.get('/adduser/', function(req, res, next){
+  res.send('Specify a Username, Password and Email.<br />/adduser/{username}/{password}/{email}');
 });
 
 // app.get('/', function(req, res){
