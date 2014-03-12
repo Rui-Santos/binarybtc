@@ -31,7 +31,7 @@ Install script dependencies with NPM
 Connection
 ---------------------
 
-You can use a linux port proxy to pipe connections on 80 to Express on 8080
+You can use a linux port proxy to pipe connections on 80 to Express on 8080. This is because Linux does not allow a user other than root to bind to port 80.
 
 >iptables -t nat -A PREROUTING -i eth0 -p tcp --dport 80 -j REDIRECT --to-port 8080
 
