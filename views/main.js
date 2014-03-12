@@ -1,26 +1,4 @@
 
-    // Function to add custom formats to dates in milliseconds
-    Date.prototype.customFormat = function(formatString){
-        var YYYY,YY,MMMM,MMM,MM,M,DDDD,DDD,DD,D,hhh,hh,h,mm,m,ss,s,ampm,AMPM,dMod,th;
-        var dateObject = this;
-        YY = ((YYYY=dateObject.getFullYear())+"").slice(-2);
-        MM = (M=dateObject.getMonth()+1)<10?('0'+M):M;
-        MMM = (MMMM=["January","February","March","April","May","June","July","August","September","October","November","December"][M-1]).substring(0,3);
-        DD = (D=dateObject.getDate())<10?('0'+D):D;
-        DDD = (DDDD=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][dateObject.getDay()]).substring(0,3);
-        th=(D>=10&&D<=20)?'th':((dMod=D%10)==1)?'st':(dMod==2)?'nd':(dMod==3)?'rd':'th';
-        formatString = formatString.replace("#YYYY#",YYYY).replace("#YY#",YY).replace("#MMMM#",MMMM).replace("#MMM#",MMM).replace("#MM#",MM).replace("#M#",M).replace("#DDDD#",DDDD).replace("#DDD#",DDD).replace("#DD#",DD).replace("#D#",D).replace("#th#",th);
-
-        h=(hhh=dateObject.getHours());
-        if (h==0) h=24;
-        if (h>12) h-=12;
-        hh = h<10?('0'+h):h;
-        AMPM=(ampm=hhh<12?'am':'pm').toUpperCase();
-        mm=(m=dateObject.getMinutes())<10?('0'+m):m;
-        ss=(s=dateObject.getSeconds())<10?('0'+s):s;
-        return formatString.replace("#hhh#",hhh).replace("#hh#",hh).replace("#h#",h).replace("#mm#",mm).replace("#m#",m).replace("#ss#",ss).replace("#s#",s).replace("#ampm#",ampm).replace("#AMPM#",AMPM);
-    }
-
 function symbolSwitch(symbol) {
     switch (symbol) {
       case '^DJI':
@@ -163,6 +141,8 @@ var symbols = ['BTCUSD', 'EURUSD', 'GBPUSD', 'JPYUSD', '^DJI', 'CLJ14.NYM', 'GCJ
    socket.on('ratios', function (data) {
       for (var key in data) {
         var obj = data[key]; 
+        key = symbolSwitch(key);
+        //console.log(key + obj);
         $('.progress'+key+' .progress-bar').attr('aria-valuetransitiongoal', obj);
         $('.progress'+key+' .progress-bar').progressbar();
       }
@@ -229,7 +209,7 @@ var publictrades = true;
       var tradehtml = '<div class="header">No Active Trades</div>';
     }
     
-           tradehtml = tradehtml + '<table class="table tradestable" id="trades">';
+           tradehtml = tradehtml + '<div><table class="table tradestable" id="trades">';
               // '<thead>' +
               //   '<tr>' +
               //     '<th class="symbol">Symbol</th>' +
@@ -283,7 +263,7 @@ var publictrades = true;
         // }
       }
     }
-    tradehtml = tradehtml + '</tbody></table>';
+    tradehtml = tradehtml + '</tbody></table></div>';
      $('.tradestable').html(tradehtml);
 
 $( ".usertrade" ).each(function( index ) {
@@ -323,7 +303,70 @@ $( ".usertrade" ).each(function( index ) {
    });
 });
 
+   socket.on('historictrades', function (data) {
+   
+    $('.historictrades').html('');
+    if (data[0] != null) {
+      var tradehtml = '<div class="header">Trade History</div>';
+    } else {
+      var tradehtml = '<div class="header">Trade History</div>';
+    }
+    
+    tradehtml = tradehtml + '<div><table class="table" id="historictrades">';
+    tradehtml = tradehtml + '<tbody>';
+    var index;
+    for (index = 0; index < data.length; ++index) {
+      entry = data[index];
+       //console.log(entry.symbol);
+      entry.symbol = symbolSwitch(entry.symbol);
 
+      if (entry.user == userid || publictrades == true) {
+        var possiblewin = (+entry.amount+(entry.amount*entry.offer));
+        possiblewin = possiblewin.toFixed(2);
+        entry.price = Number(entry.price);
+
+        if (!lastprice) {
+          lastprice = '-.--';
+        }
+
+
+        if (entry.direction == 'Call') {
+          var arrowhtml = '<span style="opacity: 0.7" class="glyphicon glyphicon-arrow-up"></span>';
+        } else if (entry.direction == 'Put') {
+          var arrowhtml = '<span style="opacity: 0.7" class="glyphicon glyphicon-arrow-down"></span>';
+        }
+
+        if (entry.outcome == 'Win') {
+          var thumbhtml = '<span class="green">Won</span></td><td> m฿'+possiblewin+'</span></td>';
+        } else if (entry.outcome == 'Lose') {
+          var thumbhtml = '<span class="red">Lost</span></td><td> m฿'+entry.amount+'</span></td>';
+        } else if (entry.outcome == 'Tie') {
+          var thumbhtml = '<span>Push</span></td><td> m฿'+entry.amount+'</span></td>';
+        }
+        var entrytime = new Date(0);
+        entrytime.setUTCMilliseconds(entry.time);
+        entrytime = entrytime.customFormat( "#DD#/#MM#/#YYYY# #hhh#:#mm#:#ss# " );
+
+        tradehtml = tradehtml + '<tr class="historictrade" id="'+entry._id+'">' +
+                    '<td class="symbol">'+entry.symbol+'</td>'+
+                    '<td>'+entrytime+'</td>'+
+                    '<td>'+arrowhtml+' <span class="tradeprice">'+entry.price+'</span></td>'+
+                    //'<td title="Expires: '+thisdate+' '+thistime+'">'+thistime+'</td>'+
+                    '<td>'+thumbhtml+'</td>'+
+                    //'<td class="bold" title="Expires: '+thisdate+' '+thistime+'">Trade in: <span class="expiretime"></span></td>'+
+                  '</tr>';
+        //     if (lastprice > entry[1]) {
+        //   $('#trade'+index+'').removeClass('redbg').addClass('greenbg');
+        // } else if (lastprice < entry[1]) {
+        //   $('#trade'+index+'').removeClass('greenbg').addClass('redbg');
+        // } else {
+        //   $('#trade'+index+'').removeClass('greenbg').removeClass('redbg');
+        // }
+      }
+    }
+    tradehtml = tradehtml + '</tbody></table></div>';
+    $('.historictrades').html(tradehtml);
+});
 
     $(".applytrade").click(function(e) {
           var symbol = $(this).parent().parent().attr('id');
@@ -338,7 +381,7 @@ $( ".usertrade" ).each(function( index ) {
             direction : direction,
             user : userid
           });
-          });
+      });
 
 
          socket.on('nexttrade', function (data) {
@@ -466,22 +509,37 @@ symbol = symbolSwitch(symbol);
     var h=new Highcharts.Chart({
         chart: {
           renderTo: container,
-          chart: {
-            spacingBottom: 1,
-            spacingTop: 0,
-            spacingLeft: 0,
-            spacingRight: 5,
-            zoomType: 'x'
-          }
+            zoomType: 'x',
+            resetZoomButton: {
+                theme: {
+                    fill: '#eee',
+                    stroke: '#eee',
+                    r: 0,
+                    states: {
+                        hover: {
+                            fill: '#eee',
+                            stroke: '#adadad',
+                            style: {
+                                color: 'black',
+                            }
+                        }
+                    }
+                }
+            },
+            style: {
+             fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
+              fontSize: '15px'
+            }
         },
         xAxis: {
             type: 'datetime',
-            lineColor: '#eeeeee'
+            lineColor: '#eee'
         },
       yAxis : {
         title : {
           text : ' '
-        }
+        },
+        gridLineColor: '#eee'
       },
         title : {
         text : ' '
@@ -503,7 +561,7 @@ symbol = symbolSwitch(symbol);
                   enabled: true
                 }
               }
-            }
+            },
           },
         },
         series : [
@@ -702,3 +760,26 @@ setTimeout(function(){
   },2500);
 }
 }
+
+
+    // Function to add custom formats to dates in milliseconds
+    Date.prototype.customFormat = function(formatString){
+        var YYYY,YY,MMMM,MMM,MM,M,DDDD,DDD,DD,D,hhh,hh,h,mm,m,ss,s,ampm,AMPM,dMod,th;
+        var dateObject = this;
+        YY = ((YYYY=dateObject.getFullYear())+"").slice(-2);
+        MM = (M=dateObject.getMonth()+1)<10?('0'+M):M;
+        MMM = (MMMM=["January","February","March","April","May","June","July","August","September","October","November","December"][M-1]).substring(0,3);
+        DD = (D=dateObject.getDate())<10?('0'+D):D;
+        DDD = (DDDD=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][dateObject.getDay()]).substring(0,3);
+        th=(D>=10&&D<=20)?'th':((dMod=D%10)==1)?'st':(dMod==2)?'nd':(dMod==3)?'rd':'th';
+        formatString = formatString.replace("#YYYY#",YYYY).replace("#YY#",YY).replace("#MMMM#",MMMM).replace("#MMM#",MMM).replace("#MM#",MM).replace("#M#",M).replace("#DDDD#",DDDD).replace("#DDD#",DDD).replace("#DD#",DD).replace("#D#",D).replace("#th#",th);
+
+        h=(hhh=dateObject.getHours());
+        if (h==0) h=24;
+        if (h>12) h-=12;
+        hh = h<10?('0'+h):h;
+        AMPM=(ampm=hhh<12?'am':'pm').toUpperCase();
+        mm=(m=dateObject.getMinutes())<10?('0'+m):m;
+        ss=(s=dateObject.getSeconds())<10?('0'+s):s;
+        return formatString.replace("#hhh#",hhh).replace("#hh#",hh).replace("#h#",h).replace("#mm#",mm).replace("#m#",m).replace("#ss#",ss).replace("#s#",s).replace("#ampm#",ampm).replace("#AMPM#",AMPM);
+    }

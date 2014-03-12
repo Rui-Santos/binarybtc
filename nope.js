@@ -26,6 +26,10 @@ var schema = new mongoose.Schema({ ip: 'string', time: 'string' });
 var Pageviews = mongoose.model('pageviews', schema);
 var schema = new mongoose.Schema({ symbol: 'string', price: 'string', offer: 'string', amount: 'string', direction: 'string', time: 'string', user: 'string' });
 var Activetrades = mongoose.model('activetrades', schema);
+var schema = new mongoose.Schema({ symbol: 'string', price: 'string', offer: 'string', amount: 'string', direction: 'string', time: 'string', user: 'string', outcome: 'string' });
+var Historictrades = mongoose.model('historictrades', schema);
+
+
 
 var User = require('user-model');
 
@@ -96,9 +100,9 @@ app.get('/adduser/:username/:password/:email', function(req, res, next){
   });
 });
 app.get('/adduser/:username/:password/', function(req, res, next){
-  res.send('Specify an Email');
+  res.send('Specify an Email<br />/adduser/{username}/{password}/{email}');
 });app.get('/adduser/:username/', function(req, res, next){
-  res.send('Specify a Password and Email');
+  res.send('Specify a Password and Email<br />/adduser/{username}/{password}/{email}');
 });app.get('/adduser/', function(req, res, next){
   res.send('Specify a Username, Password and Email.<br />/adduser/{username}/{password}/{email}');
 });
@@ -196,8 +200,28 @@ function trade() {
           userbalance[tradeuser] = (+userbalance[tradeuser] + amount);
         }
       }
+
+      console.log('User'+tradeuser+' '+outcome+' Trade: ' + tradesymbol + ':' + tradeprice  + ':' + direction + ' for $' + winnings);
+    var dbhistorictrades = new Historictrades({ 
+      symbol: tradesymbol,
+      price: tradeprice,
+      offer: offer,
+      amount: amount,
+      direction: direction,
+      time: tradetime,
+      user: tradeuser,
+      outcome: outcome
+    });
+    dbhistorictrades.save(function (err) {
+      if (err) console.log(err)
+    });
+
     }//foreach trade
-  trades = [];//empty the trades array
+  // empty the ram and database of old trades
+  trades = [];
+  Activetrades.remove({}, function(err) {
+  if (err) console.log(err);  
+  });
   console.log('$'+bank);
 }
 
@@ -212,13 +236,13 @@ function addTrade(symbol, amount, direction, user, socket) {
     console.log('New trade:'+user +':'+ symbol+':'+direction+':'+amount);
     if (direction == 'Call') {
       if (calls[symbol]) { calls[symbol]++; }else {calls[symbol] = 1}
-      totalcall[symbol] = Number((+totalcall[symbol] + amount));
+      totalcall[symbol] = Number(totalcall[symbol]) + Number(amount);
     }if (direction == 'Put') {
       if (puts[symbol]) { puts[symbol]++; }else {puts[symbol] = 1}
-      totalput[symbol] = Number((+totalput[symbol] + amount));
+      totalput[symbol] = Number(totalput[symbol]) + Number(amount);
     }
-    var t = Number(totalcall[symbol]) + Number(totalput[symbol]);
-    ratio[symbol] = (Number(totalcall[symbol]) / Number(t) * 100);
+    var t = Number(calls[symbol]) + Number(puts[symbol]);
+    ratio[symbol] = (Number(calls[symbol]) / Number(t) * 100);
 
     var dbactivetrades = new Activetrades({ 
       symbol: symbol,
@@ -254,7 +278,7 @@ function addTrade(symbol, amount, direction, user, socket) {
 function checknextTrade() {
       var nexttrade = new Date();
       var mins = nexttrade.getMinutes();
-      mins = (59-mins) % 30;
+      mins = (59-mins) % 10;
       var secs = nexttrade.getSeconds();
       if (secs != 60){
       secs = (59-secs) % 60;
@@ -422,6 +446,7 @@ function updateChart(data, symbol, force) {
     //}
 }
 
+
 function round(num, places) {
     var multiplier = Math.pow(10, places);
     return Math.round(num * multiplier) / multiplier;
@@ -437,39 +462,39 @@ var tradeupdator = setInterval(function() {
 for (index = 0; index < symbols.length; ++index) {
     getPrice(symbols[index], 1);
 }
-    // if (symbolindex < symbols.length) {
-    //  getPrice(symbols[index],'', updatePrice);
-    //  symbolindex++;
-    // } else {
-    //   symbolindex = 0;
-    // }
 }, 4000);
 
 // User Connects
 io.sockets.on('connection', function (socket) {
 var ipaddress = socket.handshake.address; //ipaddress.address/ipaddress.port
 
-// Log the connection
-var pageload = new Pageviews({ 
-  ip: ipaddress.address,
-  time: time
-});
-pageload.save(function (err) {
-  //if (err) // ...
-  console.log(ipaddress.address+':'+ipaddress.port+' connected');
-});
-
-
 //Send user current data on connect
 for (index = 0; index < symbols.length; ++index) { 
     io.sockets.emit(symbols[index]+'_price', price[symbols[index]]);
     io.sockets.emit(symbols[index]+'_chart', chart[symbols[index]]);
 }
+Historictrades.find({ /* user: userid */ }, function (err, historictrades) {
+  //console.log(historictrades)
+  socket.emit('historictrades', historictrades);
+});
 
 // Users
 
   var myNumber = userNumber++;
   var myName = 'User' + myNumber;
+
+  // Log the connection
+var pageload = new Pageviews({ 
+  ip: ipaddress.address,
+  time: time,
+  userid: myNumber,
+  username: myName
+});
+pageload.save(function (err) {
+  //if (err) // ...
+  console.log(myName+' connected');
+});
+
 
   users[myNumber] = socket;
   userbalance[userNumber] = 10;
@@ -493,14 +518,18 @@ socket.emit('activetrades', trades);
 
 
     socket.emit('userbal', userbalance[myNumber]);
-  var updator = setInterval(function() {
-    socket.emit('userbal', userbalance[myNumber]);
-    if (trades) {
+var updator = setInterval(function() {
+  socket.emit('userbal', userbalance[myNumber]);
+  if (trades) {
     socket.emit('activetrades', trades);
-    }
-        socket.emit('ratios', ratio);
-      checknextTrade();
-  },999);
+  }
+  Historictrades.find({ /* user: userid */ }, function (err, historictrades) {
+    //console.log(historictrades)
+    socket.emit('historictrades', historictrades);
+  });
+  socket.emit('ratios', ratio);
+  checknextTrade();
+},999);
 
 // open sockets to chrome
   socket.emit('hello', { hello: myName, id: myNumber });
@@ -524,6 +553,7 @@ socket.emit('activetrades', trades);
   
   // remove user from ram on disconnect
   socket.on('disconnect', function () {
+    console.log(myName+' disconnected');
     users[myName] = null;
     userbalance[myNumber] = null;
     clearInterval(updator);
