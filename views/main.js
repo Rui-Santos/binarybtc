@@ -194,8 +194,14 @@ var symbols = ['BTCUSD', 'EURUSD', 'GBPUSD', 'JPYUSD', '^DJI', 'CLJ14.NYM', 'GCJ
 
       socket.on(symbol+'_chart', function (data) {
       symbol = symbolSwitch(symbol);
-      //console.log(data);
+      if (chartinit != true) {
       loadChart(symbol, data);
+      }
+    });      
+
+      socket.on(symbol+'_updatedchart', function (data) {
+      symbol = symbolSwitch(symbol);
+      updateChart(symbol, data);
     });
   });
 
@@ -398,7 +404,7 @@ $( ".usertrade" ).each(function( index ) {
                 $('.put'+symbol).removeClass('btn-default').addClass('btn-danger');
                 $('#'+symbol+' .direction .action').html('If');
                 $('.apply'+symbol).removeClass('btn-success').addClass('btn-default').html('Apply');
-            },2000);
+            },500);
           });      
 
          socket.on('tradeerror', function (symbol) {
@@ -407,7 +413,7 @@ $( ".usertrade" ).each(function( index ) {
 
            setTimeout(function(e){
                 $('.apply'+symbol).removeClass('btn-danger').addClass('btn-warning').html('Apply');
-            },2000);
+            },500);
           });   
 
 
@@ -469,44 +475,26 @@ $( ".usertrade" ).each(function( index ) {
       $user.addClass('selected');
     });
 });
-
+var h = null;
+function updateChart(symbol, data) {
+  //console.log(data);
+  var series = h.series[0]; // shift if the series is 
+                                                 // longer than 20
+            h.series[0].addPoint(data, true);
+}
+var chartinit = false;
 function loadChart(symbol, data) {
-
+  // create the chart
+// she can not be tamed
 symbol = symbolSwitch(symbol);
-
-  var last = data[0,0];
-  if (last) {
-  last = last[1];
-  }
-  var first = Number(data.length);
-  first = data[first,1];
-  if (first) {
-  first = first[1];
-  }
-
-  var lasttime = data[0,1];
-  if (lasttime) {
-  lasttime = lasttime[1];  
-  }
-  var firsttime = Number(data.length);
-  firsttime = data[firsttime,0];
-  if (firsttime) {
-  firsttime = firsttime[1];
-  }
-  
-
   Highcharts.setOptions({
     global: {
       useUTC: false,
       timezoneOffset:240
     }
   });
-
-    // create the chart
-      // she can not be tamed
     var container = symbol + "_container";
-    //console.log('rendering chart: '+container);
-    var h=new Highcharts.Chart({
+    h=new Highcharts.Chart({
         chart: {
           renderTo: container,
             zoomType: 'x',
@@ -601,7 +589,7 @@ symbol = symbolSwitch(symbol);
         // }
         ]
     });
-
+  chartinit = true;
 }
 
 

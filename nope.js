@@ -201,7 +201,13 @@ function trade() {
         }
       }
 
-      console.log('User'+tradeuser+' '+outcome+' Trade: ' + tradesymbol + ':' + tradeprice  + ':' + direction + ' for $' + winnings);
+      if (winnings > 0) {
+        var outcomestring = 'User'+tradeuser+' '+outcome+' Trade: ' + tradesymbol + ':' + tradeprice  + ':' + direction + ' paid $' + winnings;
+      } else {
+        var outcomestring = 'User'+tradeuser+' '+outcome+' Trade: ' + tradesymbol + ':' + tradeprice  + ':' + direction + ' lost $' + amount;
+      }
+      console.log(outcomestring);
+    
     var dbhistorictrades = new Historictrades({ 
       symbol: tradesymbol,
       price: tradeprice,
@@ -408,6 +414,7 @@ function updatePrice(data, force, symbol) {
    // if (lastprice != data) {
       io.sockets.emit(symbol+'_price', data);
       updateChart(data, symbol);
+      chartPoint(data, symbol);
    // }
 }
           chartdata = [];
@@ -444,6 +451,13 @@ function updateChart(data, symbol, force) {
             }
       } 
     //}
+}
+function chartPoint( data, symbol) {
+          chartsymbol = symbol + '_updatedchart';
+        if (Number(data)) {
+          chartentry[symbol] = [time, Number(data)];
+          io.sockets.emit(chartsymbol, chartentry[symbol]);
+      } 
 }
 
 
