@@ -407,13 +407,15 @@ $( ".usertrade" ).each(function( index ) {
             },500);
           });      
 
-         socket.on('tradeerror', function (symbol) {
+         socket.on('tradeerror', function (data) {
+          symbol = data.sym;
+          var err = data.msg;
           symbol = symbolSwitch(symbol);
-           $('.apply'+symbol).removeClass('btn-warning').addClass('btn-danger').html('<span  class="glyphicon glyphicon-remove"></span>');
+           $('.apply'+symbol).removeClass('btn-warning').addClass('btn-danger').html('<span  class="glyphicon glyphicon-remove"></span> '+err);
 
            setTimeout(function(e){
                 $('.apply'+symbol).removeClass('btn-danger').addClass('btn-warning').html('Apply');
-            },500);
+            },2500);
           });   
 
 
@@ -500,8 +502,11 @@ symbol = symbolSwitch(symbol);
             zoomType: 'x',
             resetZoomButton: {
                 theme: {
-                    fill: '#eee',
-                    stroke: '#eee',
+                    fill: 'rgba(238, 238, 238, 0.5)',
+                    stroke: 'rgba(238, 238, 238, 0.7)',
+                    style: {
+                      color: 'rgba(0, 0, 0, 0.5)',
+                    },
                     r: 0,
                     states: {
                         hover: {

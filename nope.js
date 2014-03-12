@@ -124,7 +124,9 @@ app.get('/adduser/:username/:password/', function(req, res, next){
 var bank = 100;
 var put = 0;
 var call = 0;
-
+var maxamount = 10; // the max amount a user can set for any one trade
+var maxoffset = 10; // the max difference (in currency) between calls/puts on a symbol before shaping (zero to disable)
+console.log('Max amount: '+maxamount);
 var offer = 0.75;
 var expires = '30 Minutes';
 var price = {};
@@ -158,7 +160,7 @@ function trade() {
     totalput = {};
   var index;//Loop the trades
     for (index = 0; index < trades.length; ++index) {
-      var entry = trades[index];
+      var entry = trades[index]; ///example data
       var tradesymbol = entry[0]; //BTCUSD
       var tradeprice = entry[1]; //600
       var offer = entry[2]; //0.75
@@ -233,9 +235,11 @@ function trade() {
 
 
 function addTrade(symbol, amount, direction, user, socket) {
+  var err = {};
   symbol = symbolswitch(symbol);
   if (direction == 'Call' || direction == 'Put') {
     amount = Number(amount);
+    if (amount <= maxamount) {
     if (userbalance[user] >= amount) {
     var now = time;
     userbalance[user] = round((userbalance[user]-amount), 2);
@@ -276,9 +280,16 @@ function addTrade(symbol, amount, direction, user, socket) {
     socket.emit('activetrades', trades);
     a++;
   } else {
-    socket.emit('tradeerror', symbol);
+    err.sym = symbol;
+    err.msg = '';
+    socket.emit('tradeerror', err);
+  } // err
+  } else {
+    err.sym = symbol;
+    err.msg = '';
+    socket.emit('tradeerror', err);
   }
-}
+  } // direction
 }
 
 function checknextTrade() {
