@@ -702,6 +702,17 @@ function showFinances() {
     }
   });
 
+  $(".loginbtn").click(function () {
+    var email = $('#email').val();
+    var password = $('#password').val();
+    console.log(email + password);
+  });
+  $(".signupbtn").click(function () {
+    var email = $('#email').val();
+    var password = $('#password').val();
+    console.log(email + password);
+  });
+
 function showSuccess() {
     $(".financestray").css('height', '0px');
     $(".accounttray").css('height', '0px');    

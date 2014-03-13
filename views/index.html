@@ -12,7 +12,7 @@
     <script src="//code.jquery.com/ui/1.10.4/jquery-ui.js"></script>
     <script src="http://64.90.187.148:3000/socket.io/socket.io.js"></script>
     <script src="/assets/js/jquery.cycle.all.js"></script>
-    <script src="/assets/js/buzz.min.js"></script>
+    <script src="/assets/js/jquery.timeago.js"></script>
     <script src="/assets/js/jquery.easing.1.3.js"></script>
     <script src="/assets/js/bootstrap-progressbar.js"></script>
     <script src="/assets/js/bootstrap-transition.js"></script>
@@ -68,23 +68,22 @@
          <span class="glyphicon glyphicon-arrow-up"></span><span class="glyphicon glyphicon-arrow-down"></span><span style="padding-bottom: 2px;"> BITINSTANT</span>
       </button>
 
-      <!-- if user is not logged in --
+      <!-- if user is not logged in -->
     <div class="btn-group accountinfo" style="padding: 0px; ">  
 
-      <button type="button" style="height: 31px;" class="btn btn-blue"><span class="">Login</span></button>            <button type="button" style="height: 31px;" class="btn btn-success"><span class="">Signup</span></button>  
+      <button type="button" style="height: 31px;" class="btn btn-blue loginbtn"><span class="">Login</span></button>            <button type="button" style="height: 31px;" class="btn btn-success signupbtn"><span class="">Signup</span></button>  
       <div class="input-group input-group-sm">
-        <input type="text" class="form-control headerlogin headerusername" placeholder="Email">
-        <input type="password" class="form-control headerlogin" placeholder="Password">
+        <input type="text" class="form-control headerlogin headerusername" name="email" id="email"placeholder="Email">
+        <input type="password" class="form-control headerlogin" name="password" id="password" placeholder="Password">
       </div>
 
     </div>  
-    <!-- -->
 
-    <!-- if user is logged in -->
+    <!-- if user is logged in --
       <div class="btn-group accountinfo" style="padding: 0px;">
         <button type="button" style="height: 31px;" class="btn btn-success btnuser"><span class="">Jack</span></button>      
         <button type="button" style="height: 31px;" class="btn btn-blue userbal btnfinance"></button>
-      </div>
+      </div> ->
     </div>
   </div>  
   <div class="linktray" style="height: 30px;">
