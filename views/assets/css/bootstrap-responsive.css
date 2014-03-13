@@ -853,6 +853,10 @@ float: left;
   width: 42%;
 }.controls .info .applytrade {
     width: 42%;
+}#email, #password {
+  width: 77px !important;
+}.sitename {
+  display: none;
 }
 
 .callputcontainer {
