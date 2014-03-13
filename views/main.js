@@ -54,16 +54,18 @@ function displayOptions(displaysymbols) {
             '</button>'+
           '</div>'+
           '<div class="info">'+
+          '<div class="details">'+
             '<h1>--.-</h1>'+
             '<span class="hide rawoffer"></span>'+
            '<!--  <span class="bold rate">Payout if</span><br /> -->'+
             '<span class="direction bold"><span class="action">If</span>: <span class="option">'+symbol+'</span> <span class="tradeicon glyphicon icon'+symbol+' green glyphicon-arrow-up"></span></span><br />'+
             '<span class="price">From: <span class="keystone keystone'+symbol+'"> --.--</span> <span class="lock"></span></span><br />'+
             '<span class="expires bold">In: <span class="expiretime"></span></span>'+
+          '</div><div class="trader">' +
             '<div class="input-group amount">'+
                   '<span class="input-group-addon">m฿</span>'+
-                  '<input type="text" class="form-control amountfield" style="height: 28px;" placeholder="">'+
-            '</div>'+
+                  '<input type="number" class="form-control amountfield" style="height: 28px;" placeholder="">'+
+            '</div></div>'+
             '<button type="button" class="btn btn-default applytrade apply'+symbol+'">Apply</button>'+
 
           '</div>'+
@@ -350,12 +352,15 @@ $( ".usertrade" ).each(function( index ) {
           var thumbhtml = '<span>Push</span></td><td> m฿'+entry.amount+'</span></td>';
         }
         var entrytime = new Date(0);
+        var entrydate = new Date(0);
         entrytime.setUTCMilliseconds(entry.time);
-        entrytime = entrytime.customFormat( "#DD#/#MM#/#YYYY# #hhh#:#mm#:#ss# " );
+        entrydate.setUTCMilliseconds(entry.time);
+        entrytime = entrytime.customFormat( "#hhh#:#mm#:#ss# " );
+        entrydate = entrydate.customFormat( "#DD#/#MM#/#YYYY#" );
 
         tradehtml = tradehtml + '<tr class="historictrade" id="'+entry._id+'">' +
                     '<td class="symbol">'+entry.symbol+'</td>'+
-                    '<td>'+entrytime+'</td>'+
+                    '<td>'+entrydate+'</td>'+
                     '<td>'+arrowhtml+' <span class="tradeprice">'+entry.price+'</span></td>'+
                     //'<td title="Expires: '+thisdate+' '+thistime+'">'+thistime+'</td>'+
                     '<td>'+thumbhtml+'</td>'+

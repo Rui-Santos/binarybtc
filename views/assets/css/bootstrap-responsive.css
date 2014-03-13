@@ -108,7 +108,7 @@
   }
 }
 
-@media (min-width: 1200px) {
+/*@media (min-width: 990px) {
   .row {
     margin-left: -30px;
     *zoom: 1;
@@ -131,7 +131,7 @@
   .navbar-static-top .container,
   .navbar-fixed-top .container,
   .navbar-fixed-bottom .container {
-    width: 1170px;
+    width: 990px;
   }
   .span12 {
     width: 1170px;
@@ -456,12 +456,18 @@
   .row-fluid .thumbnails {
     margin-left: 0;
   }
-}
+}*/
 
-@media (min-width: 768px) and (max-width: 979px) {
+/*@media (min-width: 768px) and (max-width: 979px) {
   .row {
     margin-left: -20px;
     *zoom: 1;
+  }.
+  .col1 {
+    min-width: 768px;
+    max-width: 979px;
+  }.col2 {
+    min-width: 768px;
   }
   .row:before,
   .row:after {
@@ -797,12 +803,62 @@
   .uneditable-input.span1 {
     width: 28px;
   }
-}
+}*/
 
-@media (max-width: 767px) {
+@media (max-width: 720px) {
   body {
 
   }
+  .topcontainer{
+    width: 100%;
+  }.container {
+    min-width: 100%;
+    overflow: hidden;
+  }.col1, .col2 {
+    width: 100%;
+    float: none;
+  }.numbotron {
+    float: none;
+    width: 100%;
+  }.controls {
+    width: 100%;
+    float: none;
+  }.nooffer {
+    height: 92px;
+    padding: 10px 12px;
+  }
+  .callputcontainer .btn {
+height: 30px;
+width: 100px;
+}
+.progress.vertical {
+float: left;
+width: 10px !important;
+height: 90px !important;
+margin-right: 7%;
+}
+.progress-bar-success {
+background-color: hsl(113, 100%, 35%);
+border-bottom: 1px solid #eee;
+}
+.controls .info {
+position: absolute;
+left: 125px;
+width: 75%;
+float: left;
+}.controls .info .details {
+width: 42%;
+float: left;
+}.controls .amount {
+  width: 42%;
+}.controls .info .applytrade {
+    width: 42%;
+}
+
+.callputcontainer {
+top: 4px;
+height: 88px;
+}
   .navbar-fixed-top,
   .navbar-fixed-bottom,
   .navbar-static-top {

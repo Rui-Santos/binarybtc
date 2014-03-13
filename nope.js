@@ -99,6 +99,16 @@ app.get('/adduser/:username/:password/:email', function(req, res, next){
       }
   });
 });
+app.get('/account/', function(req, res, next){
+  //res.send(req.params.id);
+  res.sendfile('views/a.html');
+});
+app.get('/finance/', function(req, res, next){
+  //res.send(req.params.id);
+  res.sendfile('views/f.html');
+});
+
+
 app.get('/adduser/:username/:password/', function(req, res, next){
   res.send('Specify an Email<br />/adduser/{username}/{password}/{email}');
 });app.get('/adduser/:username/', function(req, res, next){

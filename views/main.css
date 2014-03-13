@@ -34,6 +34,13 @@ display: table-cell;
       .container > hr {
         margin: 300px 0 30px 0;
       }
+      .topcontainer {
+        margin: 0 auto;
+        width: 960px;
+      }
+      .topcontainer > hr {
+        margin: 300px 0 30px 0;
+      }
 
       /* Main marketing message and sign up button */
       .numbotron {
@@ -101,7 +108,7 @@ display: table-cell;
       .controls {
         min-width: 200px;
         width: 22%;
-        height: 200px;
+        /*height: 200px;*/
         float: left;
         position: relative;
         margin-top: 6px;
@@ -214,9 +221,10 @@ margin: 0 auto;
 float:left;
 list-style: none;
 cursor: default;
+width: 100%;
 }.linktray ul li {
 float: left;
-margin-right: 15px;
+padding-right: 15px;
 margin-top: 1px;
 }.linktray ul li.selected {
 background: ;
@@ -338,27 +346,29 @@ margin-right: 15px;
 
 .symbols {
 border: 1px solid #EEE;
-width: 919px;
-margin: 6px;
+margin: 6px 0px;
 border-radius: 4px;
+
 }
 .lock {
   opacity: 0.75;
 }
 .col1, .col2{
-  width: 465px;
-  float: left;
+width: 477px;
+float: left;
+}.col1 {
+  margin-right: 5px;
 }
 .userblock {
 overflow: hidden;
 background-color: white;
-margin: 5px;
+margin: 5px 0px;
 border: 1px solid #EEE;
 border-radius: 4px;
 }.usertrades {
 overflow: hidden;
 background-color: white;
-margin: 5px;
+margin: 5px 0px;
 border: 1px solid #EEE;
 border-radius: 4px;
 }
@@ -395,6 +405,7 @@ margin: 9px 10px;
 border: 2px dashed #eee;
 height: 182px;
 opacity: 0.85;
+background: whitesmoke;
 }
 .globalheader {
   border-bottom: 1px solid #cecece;
