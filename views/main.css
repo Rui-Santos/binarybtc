@@ -121,6 +121,9 @@ display: table-cell;
       top: 3px !important;
       background: hsl(360, 100%, 35%);
       }
+      .progress-bar-success {
+        background-color: hsl(113, 100%, 35%) !important;
+      }
       .callputcontainer .btn {
         width: 60px;
         height: 76px;

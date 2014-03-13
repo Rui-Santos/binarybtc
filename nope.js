@@ -2,6 +2,7 @@ var fs = require('fs')
   , url = require('url')
   , path = require('path')
   , http = require('http')
+  , https = require('https')
   , express = require('express')
   , nowjs = require("now")
   , mongoose = require('mongoose')
@@ -28,12 +29,25 @@ var schema = new mongoose.Schema({ symbol: 'string', price: 'string', offer: 'st
 var Activetrades = mongoose.model('activetrades', schema);
 var schema = new mongoose.Schema({ symbol: 'string', price: 'string', offer: 'string', amount: 'string', direction: 'string', time: 'string', user: 'string', outcome: 'string' });
 var Historictrades = mongoose.model('historictrades', schema);
+var schema = new mongoose.Schema({ symbol: 'string', chart: 'string'});
+var Historicprices = mongoose.model('historicprices', schema);
 
 
 
 var User = require('user-model');
 
 
+function userCheck(username) {
+  var usern = null;
+  // fetch user and test password verification
+  User.findOne({ username: username }, function(err, user) {
+    if (err) throw err;
+    if (user != null){
+    usern = user.username;
+    }
+  });
+  return usern;
+}
 function userFetch(username, password) {
 // fetch user and test password verification
 User.findOne({ username: username }, function(err, user) {
@@ -55,19 +69,35 @@ Activetrades.remove({}, function(err) {
 });
 
 // Webserver
-var io = require('socket.io').listen(3000);
-io.set('log level', 1); // reduce logging
-var app = express();
-
-var server = app.listen(port, function() {
-    console.log('Listening on port %d', server.address().port);
+// Redirect non encrypted connections
+var insecureserver = http.createServer(function (request, response) {
+  response.writeHead(302, {
+  'Location': 'https://vbit.io:8080/'
+  });
+  response.end();
 });
-//app.use(express.static(path.join(__dirname, '')));
-app.use("/", express.static(__dirname + '/views'));
+insecureserver.listen(80);
+// Include SSL server.key and domain.crt
+var options = {
+  key: fs.readFileSync('/home/node/keys/server.key'),
+  cert: fs.readFileSync('/home/node/keys/vbit_io.crt')
+};
+// Start secure webserver
+var app = express();
+var server = https.createServer(options, app).listen(port, function(){
+  console.log("Express server listening on port " + port);
+});
+// Start secure socket server
+var io = require('socket.io').listen(3000, options);
+io.set('log level', 1); // reduce logging
+
+// Use the Views directory
+app.use('/', express.static(__dirname + '/views'));
+// Send index
 app.get('/', function(req,res) {
   res.sendfile('views/index.html');
 });
-
+// Proto
 app.get('/symbol/:id', function(req, res, next){
   res.send(req.params.id);
   //res.render('index.html');
@@ -76,6 +106,8 @@ app.get('/trade/:id', function(req, res, next){
   res.send(req.params.id);
   //res.render('index.html');
 });
+
+// Add a user
 app.get('/adduser/:username/:password/:email', function(req, res, next){
   // create a user a new user
   var newUser = new User({
@@ -99,16 +131,6 @@ app.get('/adduser/:username/:password/:email', function(req, res, next){
       }
   });
 });
-app.get('/account/', function(req, res, next){
-  //res.send(req.params.id);
-  res.sendfile('views/a.html');
-});
-app.get('/finance/', function(req, res, next){
-  //res.send(req.params.id);
-  res.sendfile('views/f.html');
-});
-
-
 app.get('/adduser/:username/:password/', function(req, res, next){
   res.send('Specify an Email<br />/adduser/{username}/{password}/{email}');
 });app.get('/adduser/:username/', function(req, res, next){
@@ -117,17 +139,15 @@ app.get('/adduser/:username/:password/', function(req, res, next){
   res.send('Specify a Username, Password and Email.<br />/adduser/{username}/{password}/{email}');
 });
 
-// app.get('/', function(req, res){
-//   res.render('index.html');
-// });
-// simple logger
-// app.use(function(req, res, next){
-//   console.log('%s %s', req.method, req.url);
-//   next();
-// });
-
-
-
+// Load account and finance pages
+app.get('/account/', function(req, res, next){
+  //res.send(req.params.id);
+  res.sendfile('views/a.html');
+});
+app.get('/finance/', function(req, res, next){
+  //res.send(req.params.id);
+  res.sendfile('views/f.html');
+});
 
 
 // Tradeserver
@@ -579,6 +599,33 @@ var updator = setInterval(function() {
   
   socket.on('chat', function (message) {
     io.sockets.emit('chat', myName + ': ' + message);
+  });  
+
+  socket.on('validateemail', function (data) {
+    //var resp = userCheck(data.email);
+      User.findOne({ username: data.email }, function(err, user) {
+    if (err) throw err 
+      if (user){
+          socket.emit('validateemailresponce', 'Login');
+      } else {
+          socket.emit('validateemailresponce', 'Signup');
+      }
+      });
+  });
+
+
+  socket.on('login', function (data) {
+    // fetch user and test password verification
+    User.findOne({ username: data.email }, function(err, user) {
+        if (err) throw err;
+
+         // test a matching password
+        user.comparePassword(data.password, function(err, isMatch) {
+            if (err) { throw err; socket.emit('loginreturn', err); } else {
+             socket.emit('loginreturn', 'OK');
+           }
+        });
+    });
   });
 
   socket.on('message', function (data) {

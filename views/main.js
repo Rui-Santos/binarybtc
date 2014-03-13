@@ -1,4 +1,7 @@
-
+function validateEmail(email) { 
+    var re = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    return re.test(email);
+} 
 function symbolSwitch(symbol) {
     switch (symbol) {
       case '^DJI':
@@ -95,7 +98,7 @@ function displayOptions(displaysymbols) {
     // timeout: 0 
     // });
     
-    var socket = io.connect('http://64.90.187.148:3000');
+    var socket = io.connect('https://vbit.io:3000', {secure: true});
     var user, userid, option, offer, price, expires, direction;
     var $users = $('#users ul');
     var $chatOutput = $('.messages');
@@ -122,7 +125,7 @@ var symbols = ['BTCUSD', 'EURUSD', 'GBPUSD', 'JPYUSD', '^DJI', 'CLJ14.NYM', 'GCJ
       $('.bankbal').html(data);
     });      
    socket.on('userbal', function (data) {
-      $('.userbal').html('m฿ '+data);
+      $('.userbal').html('m฿'+data+'');
       if (lastbal < data) {
         //$('.userbal').effect("highlight", {color: 'hsl(113, 100%, 35%, 0.15)'}, 1530, "easeInOutCirc");
       } else if (lastbal > data) {
@@ -394,6 +397,16 @@ $( ".usertrade" ).each(function( index ) {
           });
       });
 
+$('.loginbtn').click(function() {
+    var email = $('#email').val();
+    var password = $('#password').val();
+    if (validateEmail(email)) {
+      socket.emit('login', {
+        email: email,
+        password: password
+      });
+    }
+  });
 
          socket.on('nexttrade', function (data) {
            data[1] = ('0' + data[1]).slice(-2)
@@ -424,6 +437,34 @@ $( ".usertrade" ).each(function( index ) {
           });   
 
 
+
+
+  $('#email').keyup(function() {
+    var email = $(this).val();
+    if (email) {
+    if (validateEmail(email)) {
+      socket.emit('validateemail', {
+        email: email
+      });
+    } 
+    }
+  });
+
+
+  socket.on('validateemailresponce', function (data) {
+    $('.loginbtn').html(data);
+    if (data == 'Signup') {
+      $('.loginbtn').addClass('btn-warning');
+    } else {
+      $('.loginbtn').removeClass('btn-warning');
+    }
+  });
+
+  socket.on('loginreturn', function (data) {
+    if (data == 'OK') {
+      console.log('logged in');
+    }
+  });
 
 
 // Proto
@@ -644,6 +685,8 @@ $(function() {
 });
 
 
+
+
 function isOdd(num) { return num % 2;}
 $(function() {
 // page loaded
@@ -702,16 +745,15 @@ function showFinances() {
     }
   });
 
-  $(".loginbtn").click(function () {
-    var email = $('#email').val();
-    var password = $('#password').val();
-    console.log(email + password);
-  });
+
+
   $(".signupbtn").click(function () {
     var email = $('#email').val();
     var password = $('#password').val();
     console.log(email + password);
   });
+
+
 
 function showSuccess() {
     $(".financestray").css('height', '0px');

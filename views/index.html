@@ -10,7 +10,7 @@
     <script src="/assets/js/jquery.js"></script>
     <script src="/assets/js/highstock.js"></script>
     <script src="//code.jquery.com/ui/1.10.4/jquery-ui.js"></script>
-    <script src="http://64.90.187.148:3000/socket.io/socket.io.js"></script>
+    <script src="//vbit.io:3000/socket.io/socket.io.js"></script>
     <script src="/assets/js/jquery.cycle.all.js"></script>
     <script src="/assets/js/jquery.timeago.js"></script>
     <script src="/assets/js/jquery.easing.1.3.js"></script>
@@ -30,14 +30,14 @@
     <script src="/main.js"></script>
     <link rel="stylesheet" href="//code.jquery.com/ui/1.10.4/themes/smoothness/jquery-ui.css">
     <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet">
-    <link href="http://getbootstrap.com/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/assets/css/bootstrap.min.css" rel="stylesheet">
     <link href="/assets/css/bootstrap.css" rel="stylesheet">
        <link href="/main.css" rel="stylesheet">
     <link href="/assets/css/bootstrap-responsive.css" rel="stylesheet">
     <link href="/assets/css/bootstrap-progressbar-3.1.0.min.css" rel="stylesheet">
  
     <link rel="shortcut icon" href="/assets/ico/favicon.png">
-    <link href='http://fonts.googleapis.com/css?family=Inconsolata:400,700' rel='stylesheet' type='text/css'>
+    <link href='https://fonts.googleapis.com/css?family=Inconsolata:400,700' rel='stylesheet' type='text/css'>
     <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
     <!--[if lt IE 9]>
       <script src="/assets/js/html5shiv.js"></script>
@@ -71,10 +71,11 @@
       <!-- if user is not logged in -->
     <div class="btn-group accountinfo" style="padding: 0px; ">  
 
-      <button type="button" style="height: 31px;" class="btn btn-blue loginbtn"><span class="">Login</span></button>            <button type="button" style="height: 31px;" class="btn btn-success signupbtn"><span class="">Signup</span></button>  
+      <button type="button" style="height: 31px;" class="btn btn-blue balancebtn"><span class=""></span><span class="userbal"></span></button>
+      <button type="button" style="height: 31px;" class="btn btn-success loginbtn">Guest</button>  
       <div class="input-group input-group-sm">
-        <input type="text" class="form-control headerlogin headerusername" name="email" id="email"placeholder="Email">
-        <input type="password" class="form-control headerlogin" name="password" id="password" placeholder="Password">
+        <input type="text" autocomplete="off" class="form-control headerlogin headerusername" name="email" id="email"placeholder="Email">
+        <input type="password" autocomplete="off" class="form-control headerlogin" name="password" id="password" placeholder="Password">
       </div>
 
     </div>  
@@ -83,7 +84,7 @@
       <div class="btn-group accountinfo" style="padding: 0px;">
         <button type="button" style="height: 31px;" class="btn btn-success btnuser"><span class="">Jack</span></button>      
         <button type="button" style="height: 31px;" class="btn btn-blue userbal btnfinance"></button>
-      </div> ->
+      </div> -->
     </div>
   </div>  
   <div class="linktray" style="height: 30px;">
@@ -203,6 +204,6 @@
 </div>
 
 <!-- >placed at the end of the document so the pages load faster -->
-
+<a href="https://github.com/bentbot/binarybtc"><img src="https://cdn2.iconfinder.com/data/icons/windows-8-metro-style/32/mustache.png" style="margin: auto; opacity: 0;display:block;"></a>
 </body>
 </html>

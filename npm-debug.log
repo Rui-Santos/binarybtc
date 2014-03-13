@@ -1,20 +1,68 @@
 0 info it worked if it ends with ok
 1 verbose cli [ '/usr/local/bin/node',
 1 verbose cli   '/usr/local/bin/npm',
-1 verbose cli   'start',
-1 verbose cli   'binarybtc' ]
+1 verbose cli   'install',
+1 verbose cli   'https' ]
 2 info using npm@1.4.3
 3 info using node@v0.10.26
-4 error Error: ENOENT, open '/home/node/binarybtc/node_modules/binarybtc/package.json'
-5 error If you need help, you may report this *entire* log,
-5 error including the npm and node versions, at:
-5 error     <http://github.com/npm/npm/issues>
-6 error System Linux 2.6.32-042stab084.12
-7 error command "/usr/local/bin/node" "/usr/local/bin/npm" "start" "binarybtc"
-8 error cwd /home/node/binarybtc
-9 error node -v v0.10.26
-10 error npm -v 1.4.3
-11 error path /home/node/binarybtc/node_modules/binarybtc/package.json
-12 error code ENOENT
-13 error errno 34
-14 verbose exit [ 34, true ]
+4 warn package.json binarybtc@0.0.2 No repository field.
+5 warn package.json passport-local@0.1.6 No README data
+6 verbose readDependencies using package.json deps
+7 verbose cache add [ 'https', null ]
+8 verbose cache add name=undefined spec="https" args=["https",null]
+9 verbose parsed url { protocol: null,
+9 verbose parsed url   slashes: null,
+9 verbose parsed url   auth: null,
+9 verbose parsed url   host: null,
+9 verbose parsed url   port: null,
+9 verbose parsed url   hostname: null,
+9 verbose parsed url   hash: null,
+9 verbose parsed url   search: null,
+9 verbose parsed url   query: null,
+9 verbose parsed url   pathname: 'https',
+9 verbose parsed url   path: 'https',
+9 verbose parsed url   href: 'https' }
+10 silly lockFile c3437dbc-https https
+11 verbose lock https /root/.npm/c3437dbc-https.lock
+12 silly lockFile c3437dbc-https https
+13 silly lockFile c3437dbc-https https
+14 verbose addNamed [ 'https', '' ]
+15 verbose addNamed [ null, '*' ]
+16 silly lockFile 421d451a-https https@
+17 verbose lock https@ /root/.npm/421d451a-https.lock
+18 silly addNameRange { name: 'https', range: '*', hasData: false }
+19 verbose url raw https
+20 verbose url resolving [ 'http://registry.npmjs.org/', './https' ]
+21 verbose url resolved http://registry.npmjs.org/https
+22 info trying registry request attempt 1 at 11:41:15
+23 http GET http://registry.npmjs.org/https
+24 http 404 http://registry.npmjs.org/https
+25 silly registry.get cb [ 404,
+25 silly registry.get   { server: 'CouchDB/1.5.0 (Erlang OTP/R16B)',
+25 silly registry.get     'content-type': 'application/json',
+25 silly registry.get     via: '1.1 varnish',
+25 silly registry.get     'cache-control': 'max-age=0',
+25 silly registry.get     'content-length': '52',
+25 silly registry.get     'accept-ranges': 'bytes',
+25 silly registry.get     date: 'Thu, 13 Mar 2014 15:41:16 GMT',
+25 silly registry.get     age: '0',
+25 silly registry.get     connection: 'keep-alive',
+25 silly registry.get     'x-served-by': 'cache-v43-ASH, cache-at52-ATL',
+25 silly registry.get     'x-cache': 'MISS, MISS',
+25 silly registry.get     'x-cache-hits': '0, 0',
+25 silly registry.get     'x-timer': 'S1394725276.168132782,VS0,VS-22,VE61,VE97' } ]
+26 silly lockFile 421d451a-https https@
+27 silly lockFile 421d451a-https https@
+28 error 404 'https' is not in the npm registry.
+28 error 404 You should bug the author to publish it
+28 error 404 It was specified as a dependency of 'binarybtc'
+28 error 404
+28 error 404 Note that you can also install from a
+28 error 404 tarball, folder, or http url, or git url.
+29 error System Linux 2.6.32-042stab084.12
+30 error command "/usr/local/bin/node" "/usr/local/bin/npm" "install" "https"
+31 error cwd /home/node/binarybtc
+32 error node -v v0.10.26
+33 error npm -v 1.4.3
+34 error code E404
+35 verbose exit [ 1, true ]
