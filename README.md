@@ -4,36 +4,12 @@ Bitcoin Binary Options
 Dependencies
 ---------------------
 
-Dependencies for installing Node.js
-
->sudo add-apt-repository ppa:chris-lea/node.js
-
->sudo apt-get update 
-
-Install MongoDB, NPM, Node.js, and Python dependencies if needed
-
->sudo apt-get install python-software-properties  mongodb-10gen nodejs npm
-
-Install script dependencies with NPM
-
->npm install 
->fs
-> url
-> path
-> http
-> express
-> nowjs
-> mongoose
-> socket.io
-> StringDecoder
-> bitcoin
+Dependencies can be found in package.json and _may_ be installable with `npm install binarybtc`
 
 Connection
 ---------------------
 
-You can use a linux port proxy to pipe connections on 80 to Express on 8080. This is because Linux does not allow a user other than root to bind to port 80.
-
->iptables -t nat -A PREROUTING -i eth0 -p tcp --dport 80 -j REDIRECT --to-port 8080
+It's recomended to use Nginx or another web server to forward connections from port 80
 
 Express port: 8080
 

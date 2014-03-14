@@ -70,13 +70,7 @@ Activetrades.remove({}, function(err) {
 
 // Webserver
 // Redirect non encrypted connections
-var insecureserver = http.createServer(function (request, response) {
-  response.writeHead(302, {
-  'Location': 'https://vbit.io:8080/'
-  });
-  response.end();
-});
-insecureserver.listen(80);
+
 // Include SSL server.key and domain.crt
 var options = {
   key: fs.readFileSync('/home/node/keys/server.key'),
@@ -267,59 +261,65 @@ function trade() {
 function addTrade(symbol, amount, direction, user, socket) {
   var err = {};
   symbol = symbolswitch(symbol);
+  if (amount > 0) {
   if (direction == 'Call' || direction == 'Put') {
     amount = Number(amount);
     if (amount <= maxamount) {
-    if (userbalance[user] >= amount) {
-    var now = time;
-    userbalance[user] = round((userbalance[user]-amount), 2);
-    console.log('New trade:'+user +':'+ symbol+':'+direction+':'+amount);
-    if (direction == 'Call') {
-      if (calls[symbol]) { calls[symbol]++; }else {calls[symbol] = 1}
-      totalcall[symbol] = Number(totalcall[symbol]) + Number(amount);
-    }if (direction == 'Put') {
-      if (puts[symbol]) { puts[symbol]++; }else {puts[symbol] = 1}
-      totalput[symbol] = Number(totalput[symbol]) + Number(amount);
-    }
-    var t = Number(calls[symbol]) + Number(puts[symbol]);
-    ratio[symbol] = (Number(calls[symbol]) / Number(t) * 100);
+      if (userbalance[user] >= amount) {
+      var now = time;
+      userbalance[user] = round((userbalance[user]-amount), 2);
+      console.log('New trade:'+user +':'+ symbol+':'+direction+':'+amount);
+      if (direction == 'Call') {
+        if (calls[symbol]) { calls[symbol]++; }else {calls[symbol] = 1}
+        totalcall[symbol] = Number(totalcall[symbol]) + Number(amount);
+      }if (direction == 'Put') {
+        if (puts[symbol]) { puts[symbol]++; }else {puts[symbol] = 1}
+        totalput[symbol] = Number(totalput[symbol]) + Number(amount);
+      }
+      var t = Number(calls[symbol]) + Number(puts[symbol]);
+      ratio[symbol] = (Number(calls[symbol]) / Number(t) * 100);
 
-    var dbactivetrades = new Activetrades({ 
-      symbol: symbol,
-      price: price[symbol],
-      offer: offer,
-      amount: amount,
-      direction: direction,
-      time: now,
-      user: user
-    });
-    dbactivetrades.save(function (err) {
-    });
+      var dbactivetrades = new Activetrades({ 
+        symbol: symbol,
+        price: price[symbol],
+        offer: offer,
+        amount: amount,
+        direction: direction,
+        time: now,
+        user: user
+      });
+      dbactivetrades.save(function (err) {
+      });
 
-    var valueToPush = new Array();
-    valueToPush[0] = symbol;
-    valueToPush[1] = price[symbol];
-    valueToPush[2] = offer;
-    valueToPush[3] = amount;
-    valueToPush[4] = direction;
-    valueToPush[5] = now;
-    valueToPush[6] = user;
-    trades.push(valueToPush);
-    socket.emit('ratios', ratio);
-    socket.emit('tradeadded', symbol);
-    socket.emit('activetrades', trades);
-    a++;
-  } else {
-    err.sym = symbol;
-    err.msg = '';
-    socket.emit('tradeerror', err);
-  } // err
+      var valueToPush = new Array();
+      valueToPush[0] = symbol;
+      valueToPush[1] = price[symbol];
+      valueToPush[2] = offer;
+      valueToPush[3] = amount;
+      valueToPush[4] = direction;
+      valueToPush[5] = now;
+      valueToPush[6] = user;
+      trades.push(valueToPush);
+      socket.emit('ratios', ratio);
+      socket.emit('tradeadded', symbol);
+      socket.emit('activetrades', trades);
+      a++;
+    } else {
+      err.sym = symbol;
+      err.msg = '';
+      socket.emit('tradeerror', err);
+    } // err
   } else {
     err.sym = symbol;
     err.msg = '';
     socket.emit('tradeerror', err);
   }
   } // direction
+  }else {
+    err.sym = symbol;
+    err.msg = '';
+    socket.emit('tradeerror', err);
+  } // amount
 }
 
 function checknextTrade() {
@@ -615,17 +615,18 @@ var updator = setInterval(function() {
 
 
   socket.on('login', function (data) {
+    if (data.password && data.email) {
+      //console.log(data.email + data.password);
     // fetch user and test password verification
     User.findOne({ username: data.email }, function(err, user) {
         if (err) throw err;
-
-         // test a matching password
+        // test a matching password
         user.comparePassword(data.password, function(err, isMatch) {
-            if (err) { throw err; socket.emit('loginreturn', err); } else {
-             socket.emit('loginreturn', 'OK');
-           }
+            if (err) throw err; socket.emit('loginreturn', err);
+              socket.emit('loginreturn', isMatch);
         });
     });
+    }
   });
 
   socket.on('message', function (data) {

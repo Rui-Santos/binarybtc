@@ -315,7 +315,7 @@ $( ".usertrade" ).each(function( index ) {
 });
 
    socket.on('historictrades', function (data) {
-   
+    var tid = 0;
     $('.historictrades').html('');
     if (data[0] != null) {
       var tradehtml = '<div class="header">Trade History</div>';
@@ -361,6 +361,8 @@ $( ".usertrade" ).each(function( index ) {
         entrytime = entrytime.customFormat( "#hhh#:#mm#:#ss# " );
         entrydate = entrydate.customFormat( "#DD#/#MM#/#YYYY#" );
 
+
+        if (tid < 5) {
         tradehtml = tradehtml + '<tr class="historictrade" id="'+entry._id+'">' +
                     '<td class="symbol">'+entry.symbol+'</td>'+
                     '<td>'+entrydate+'</td>'+
@@ -369,6 +371,7 @@ $( ".usertrade" ).each(function( index ) {
                     '<td>'+thumbhtml+'</td>'+
                     //'<td class="bold" title="Expires: '+thisdate+' '+thistime+'">Trade in: <span class="expiretime"></span></td>'+
                   '</tr>';
+        }
         //     if (lastprice > entry[1]) {
         //   $('#trade'+index+'').removeClass('redbg').addClass('greenbg');
         // } else if (lastprice < entry[1]) {
@@ -377,6 +380,7 @@ $( ".usertrade" ).each(function( index ) {
         //   $('#trade'+index+'').removeClass('greenbg').removeClass('redbg');
         // }
       }
+      tid++;
     }
     tradehtml = tradehtml + '</tbody></table></div>';
     $('.historictrades').html(tradehtml);
@@ -396,17 +400,6 @@ $( ".usertrade" ).each(function( index ) {
             user : userid
           });
       });
-
-$('.loginbtn').click(function() {
-    var email = $('#email').val();
-    var password = $('#password').val();
-    if (validateEmail(email)) {
-      socket.emit('login', {
-        email: email,
-        password: password
-      });
-    }
-  });
 
          socket.on('nexttrade', function (data) {
            data[1] = ('0' + data[1]).slice(-2)
@@ -459,11 +452,18 @@ $('.loginbtn').click(function() {
       $('.loginbtn').removeClass('btn-warning');
     }
   });
-
-  socket.on('loginreturn', function (data) {
-    if (data == 'OK') {
-      console.log('logged in');
+$('.loginbtn').click(function() {
+    var email = $('#email').val();
+    var password = $('#password').val();
+    if (validateEmail(email)) {
+      socket.emit('login', {
+        email: email,
+        password: password
+      });
     }
+  });
+  socket.on('loginreturn', function (data) {
+    console.log(data);
   });
 
 
