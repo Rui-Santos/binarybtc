@@ -452,16 +452,21 @@ $( ".usertrade" ).each(function( index ) {
       $('.loginbtn').removeClass('btn-warning');
     }
   });
-$('.loginbtn').click(function() {
-    var email = $('#email').val();
-    var password = $('#password').val();
-    if (validateEmail(email)) {
-      socket.emit('login', {
-        email: email,
-        password: password
-      });
-    }
-  });
+
+  $('.loginbtn').submit(function () {
+ 
+ return false;
+});
+// $('.loginbtn').click(function() {
+//     var email = $('#email').val();
+//     var password = $('#password').val();
+//     if (validateEmail(email)) {
+//       socket.emit('login', {
+//         email: email,
+//         password: password
+//       });
+//     }
+//   });
   socket.on('loginreturn', function (data) {
     console.log(data);
   });
