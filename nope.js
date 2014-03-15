@@ -1,20 +1,18 @@
-var fs = require('fs')
+var port = 8080
+  , fs = require('fs')
   , url = require('url')
   , path = require('path')
   , http = require('http')
+  , nowjs = require('now')
   , https = require('https')
+  , Keygrip = require('keygrip')
+  , cookies = require('cookies')
   , express = require('express')
-  , nowjs = require("now")
-  , passport = require('passport')
-  , LocalStrategy = require('passport-local').Strategy
   , mongoose = require('mongoose')
+  , passport = require('passport')
   , BlockchainWallet = require('blockchain-wallet')
-  , StringDecoder = require('string_decoder').StringDecoder
-  , port = 8080;
-
-
-
-
+  , LocalStrategy = require('passport-local').Strategy
+  , StringDecoder = require('string_decoder').StringDecoder;
 
 // Database connect
 mongoose.connect('mongodb://localhost/test');
@@ -84,9 +82,10 @@ app.configure(function() {
   app.use(express.session({ secret: 'keyboard cat' }));
   app.use(passport.initialize());
   app.use(passport.session());
+  app.use( cookies( keys ) );
 });
 
-
+var keys = new Keygrip(["SEKRIT2", "SEKRIT1"]);
 
 var server = https.createServer(options, app).listen(port, function(){
   console.log("Express server listening on port " + port);
@@ -114,11 +113,14 @@ app.post('/login', function(req, res) {
       var password = req.param('password', null);
       var email = req.param('email', null);
       if (email && password) {
-        var result = userFetch(email, password);
-        if (result) {
-        console.log(result);
+        var user = userFetch(email, password);
+        if (user) {
+          //res.cookies.set( "secure", "info", { signed: true, secure: true } );
+          res.cookies.set( "insecure", "info" );
         }
       }
+    res.writeHead(302, {Location: "/"})
+    res.end()
 });
 
 // Add a user
@@ -560,6 +562,7 @@ User.count({ }, function (err, count) {
 io.sockets.on('connection', function (socket) {
 var ipaddress = socket.handshake.address; //ipaddress.address/ipaddress.port
 
+
 //Send user current data on connect
 for (index = 0; index < symbols.length; ++index) { 
     io.sockets.emit(symbols[index]+'_price', price[symbols[index]]);
@@ -735,7 +738,7 @@ function symbolswitch(symbol){
   return symbol;
 }
 
-// probably important?
+// with the force of a thousand suns 
 var exec = require('child_process').exec;
 
 // Function to add custom formats to dates in milliseconds
