@@ -6,20 +6,24 @@ var port = 8080
   , nowjs = require('now')
   , https = require('https')
   , Keygrip = require('keygrip')
-  , cookies = require('cookies')
   , express = require('express')
   , mongoose = require('mongoose')
   , passport = require('passport')
   , BlockchainWallet = require('blockchain-wallet')
   , LocalStrategy = require('passport-local').Strategy
-  , StringDecoder = require('string_decoder').StringDecoder;
+  , StringDecoder = require('string_decoder').StringDecoder
+
 
 // Database connect
-mongoose.connect('mongodb://localhost/test');
-var db = mongoose.connection;
-db.on('error', console.error.bind(console, 'connection error:'));
-db.once('open', function callback () {
-  console.log('Database connected on port 27017');
+fs.readFile('/home/node/keys/mongo.key', 'utf8', function (err,data) {
+  if (err) throw (err)
+  var key = data.replace("\n", "").replace("\r", "");
+  mongoose.connect(key);
+  var db = mongoose.connection;
+  db.on('error', console.error.bind(console, 'connection error:'));
+  db.once('open', function callback () {
+    console.log('Database connected on port 27017');
+  });
 });
 
 // Setup database schemas and models
@@ -53,10 +57,27 @@ User.findOne({ username: username }, function(err, user) {
      // test a matching password
     user.comparePassword(password, function(err, isMatch) {
          if (err) throw err;
+         console.log(isMatch);
+         return isMatch;
+    });
+  }
+});
+}function userFetchCookie(username, password, req, res) {
+// fetch user and test password verification
+User.findOne({ username: username }, function(err, user) {
+    if (err) throw err;
+    if (user) {
+     // test a matching password
+    user.comparePassword(password, function(err, isMatch) {
+         if (err) throw err;
+         console.log(isMatch);
+         return isMatch;
     });
   }
 });
 }
+
+
 
 // Empty temporary database
 Pageviews.remove({}, function(err) {
@@ -72,33 +93,36 @@ Activetrades.remove({}, function(err) {
 var options = {
   key: fs.readFileSync('/home/node/keys/server.key'),
   cert: fs.readFileSync('/home/node/keys/vbit_io.crt')
-};
+}
 // Start secure webserver
-var app = express();
+//var keys = new Keygrip(["SEKRIT2", "SEKRIT1"]);
+var app = module.exports = express();
 app.configure(function() {
   app.use(express.static('public'));
-  app.use(express.cookieParser());
-  app.use(express.bodyParser());
-  app.use(express.session({ secret: 'keyboard cat' }));
+  app.use(app.router);
+  app.use(express.cookieParser('SEKRIT1'));
   app.use(passport.initialize());
   app.use(passport.session());
-  app.use( cookies( keys ) );
+  app.use(express.bodyParser());
 });
-
-var keys = new Keygrip(["SEKRIT2", "SEKRIT1"]);
 
 var server = https.createServer(options, app).listen(port, function(){
   console.log("Express server listening on port " + port);
 });
+
 // Start secure socket server
 var io = require('socket.io').listen(3000, options);
 io.set('log level', 1); // reduce logging
+
 
 // Use the Views directory
 app.use('/', express.static(__dirname + '/views'));
 // Send index
 app.get('/', function(req,res) {
+  //res.cookie('user', 'liam@hogan.re', { maxAge: 3600000, path: '/' });
+  //res.cookie('login_token', +new Date(), { maxAge: 3600000, path: '/' });
   res.sendfile('views/index.html');
+  console.log('cookies: ' + req.cookies);
 });
 // Proto
 app.get('/symbol/:id', function(req, res, next){
@@ -109,17 +133,28 @@ app.get('/trade/:id', function(req, res, next){
   res.send(req.params.id);
   //res.render('index.html');
 });
-app.post('/login', function(req, res) {
+
+app.get('/cookies/', function(req, res) {
+  res.cookie('user', 'leo', { maxAge: 3600000, path: '/' });
+  res.send('mmm');
+  res.end();
+});
+
+app.get('/login/:email/:password', function(req, res) {
       var password = req.param('password', null);
       var email = req.param('email', null);
       if (email && password) {
-        var user = userFetch(email, password);
-        if (user) {
-          //res.cookies.set( "secure", "info", { signed: true, secure: true } );
-          res.cookies.set( "insecure", "info" );
+        userFetchCookie(email, password, req, res);
+        //res.send(email + ':' + password);
+        if (isuser == true) {
+          // password and username OK
+          res.cookie('user', email, { maxAge: 3600000, path: '/' });
+          res.send('OK');
+        } else {
+          res.send('Error');
         }
       }
-    res.writeHead(302, {Location: "/"})
+    //res.writeHead(302, {Location: "/"})
     res.end()
 });
 
@@ -154,20 +189,20 @@ app.get('/adduser/:username/', function(req, res, next){
 });
 
 
-passport.use(new LocalStrategy(
-  function(username, password, done) {
-    User.findOne({ username: username }, function (err, user) {
-      if (err) { return done(err); }
-      if (!user) {
-        return done(null, false, { message: 'Incorrect username.' });
-      }
-      if (!user.comparePassword(password)) {
-        return done(null, false, { message: 'Incorrect password.' });
-      }
-      return done(null, user);
-    });
-  }
-));
+// passport.use(new LocalStrategy(
+//   function(username, password, done) {
+//     User.findOne({ username: username }, function (err, user) {
+//       if (err) { return done(err); }
+//       if (!user) {
+//         return done(null, false, { message: 'Incorrect username.' });
+//       }
+//       if (!user.comparePassword(password)) {
+//         return done(null, false, { message: 'Incorrect password.' });
+//       }
+//       return done(null, user);
+//     });
+//   }
+// ));
 
 // Load account and finance pages
 app.get('/account/', function(req, res, next){

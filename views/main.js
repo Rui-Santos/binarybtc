@@ -78,7 +78,13 @@ function displayOptions(displaysymbols) {
     //if trading is allowed on this symbol
     var renderoffer = open;
 
-    option.push('<div class="header">'+symbol+'</div><div class="panel'+symbol+'">'+
+    if (index > 0){
+    var header = '<div class="header" style="border-top: 1px solid #eee;">'+symbol+'</div>';
+    } else {
+    var header = '<div class="header">'+symbol+'</div>';
+    } 
+
+    option.push(header+'<div class="panel'+symbol+'">'+
       // '<div class="header">'+symbol+'</div>'+
       '<div class="numbotron" id="'+symbol+'_container">'+
       '</div>'+
@@ -196,11 +202,10 @@ var symbols = ['BTCUSD', 'EURUSD', 'GBPUSD', 'JPYUSD', '^DJI', 'CLJ14.NYM', 'GCJ
 
 // Charts
   $.each(displaysymbols, function( index, symbol ) {
-
       socket.on(symbol+'_chart', function (data) {
       symbol = symbolSwitch(symbol);
-      if (chartinit != true) {
-      loadChart(symbol, data);
+      if (chartinit[symbol] != true) {
+       loadChart(symbol, data);
       }
     });      
 
@@ -453,10 +458,21 @@ $( ".usertrade" ).each(function( index ) {
     }
   });
 
-  $('.loginbtn').submit(function () {
- 
- return false;
-});
+  $('.loginbtn').click(function (e) {
+    //e.preventDefault();
+    var email = $("#email").val();
+    var password = $("#password").val();
+    // $.ajax({
+    //   url: "/login/" + email + "/" + password ,
+    //   cache: false
+    // }).done(function( html ) {
+    //   console.log( html );
+    // });
+    // $.post( "/login/", function( data ) {
+    //   $( ".result" ).html( data );
+    // });
+    // return false;
+  });
 // $('.loginbtn').click(function() {
 //     var email = $('#email').val();
 //     var password = $('#password').val();
@@ -535,7 +551,7 @@ function updateChart(symbol, data) {
                                                  // longer than 20
             h.series[0].addPoint(data, true);
 }
-var chartinit = false;
+var chartinit = {};
 function loadChart(symbol, data) {
   // create the chart
 // she can not be tamed
@@ -645,7 +661,7 @@ symbol = symbolSwitch(symbol);
         // }
         ]
     });
-  chartinit = true;
+  chartinit[symbol] = true;
 }
 
 
