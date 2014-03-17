@@ -27,7 +27,7 @@ fs.readFile('/home/node/keys/mongo.key', 'utf8', function (err,data) {
 });
 
 // Setup database schemas and models
-var schema = new mongoose.Schema({ username: 'string', time: { type: Date, expires: 120 }});
+var schema = new mongoose.Schema({ username: 'string', createdAt: { type: Date, expires: '1m' }});
 var Userfirewall = mongoose.model('userfirewall', schema);
 var schema = new mongoose.Schema({ ip: 'string', time: 'string', handle: 'string' });
 var Pageviews = mongoose.model('pageviews', schema);
@@ -177,9 +177,10 @@ app.get('/login/:email/:password', function(req, res) {
                       res.send("OK");
                         } else {
                           res.send("Invalid username or password.");
+                          var now = new Date();
                           var loginRequest = new Userfirewall({
                             username: email,
-                            time: new Date
+                            createdAt: now
                           });
                          loginRequest.save(function(err) {
                            if (err) { throw (err) }
