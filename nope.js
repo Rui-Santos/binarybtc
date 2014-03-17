@@ -27,7 +27,9 @@ fs.readFile('/home/node/keys/mongo.key', 'utf8', function (err,data) {
 });
 
 // Setup database schemas and models
-var schema = new mongoose.Schema({ ip: 'string', time: 'string' });
+var schema = new mongoose.Schema({ username: 'string', time: { type: Date, expires: 120 }});
+var Userfirewall = mongoose.model('userfirewall', schema);
+var schema = new mongoose.Schema({ ip: 'string', time: 'string', handle: 'string' });
 var Pageviews = mongoose.model('pageviews', schema);
 var schema = new mongoose.Schema({ symbol: 'string', price: 'string', offer: 'string', amount: 'string', direction: 'string', time: 'string', user: 'string' });
 var Activetrades = mongoose.model('activetrades', schema);
@@ -36,6 +38,16 @@ var Historictrades = mongoose.model('historictrades', schema);
 var schema = new mongoose.Schema({ symbol: 'string', chart: 'string'});
 var Historicprices = mongoose.model('historicprices', schema);
 
+// Empty temporary database
+Pageviews.remove({}, function(err) {
+  if (err) console.log(err);  
+});
+Activetrades.remove({}, function(err) {
+  if (err) console.log(err);  
+});
+
+
+// User management
 var User = require('user-model');
 
 function userCheck(username) {
@@ -62,30 +74,37 @@ User.findOne({ username: username }, function(err, user) {
     });
   }
 });
-}function userFetchCookie(username, password, req, res) {
-// fetch user and test password verification
-User.findOne({ username: username }, function(err, user) {
-    if (err) throw err;
-    if (user) {
-     // test a matching password
-    user.comparePassword(password, function(err, isMatch) {
-         if (err) throw err;
-         console.log(isMatch);
-         return isMatch;
-    });
-  }
-});
 }
+// function userFetchCookie(username, password) {
+//   console.log('userFetchCookie: '+username+':'+password);
+// // fetch user and test password verification
+// User.findOne({ username: username }, function(err, user) {
+//     if (err) throw err;
+//     if (user) {
+//      // test a matching password
+//     user.comparePassword(password, function(err, isMatch) {
+//       if (err) throw err;
+//       console.log('find the matching password: '+isMatch);
+//     });
+//   }
+//   });
+// }
 
-
-
-// Empty temporary database
-Pageviews.remove({}, function(err) {
-  if (err) console.log(err);  
-});
-Activetrades.remove({}, function(err) {
-  if (err) console.log(err);  
-});
+// Blockchain
+var blockchain;
+fs.readFile('/home/node/keys/blockchainid.txt', 'utf8', function (err,data) {
+  if (err) {
+    return console.log(err);
+  }
+  var id = data.replace("\n", "").replace("\r", "");
+    fs.readFile('/home/node/keys/blockchain.key', 'utf8', function (err,data) {
+      if (err) {
+        return console.log(err);
+      }
+      var key = data.replace("\n", "").replace("\r", "");
+        blockchain = new BlockchainWallet(id, key);
+      });
+    });
 
 // Webserver
 
@@ -122,7 +141,6 @@ app.get('/', function(req,res) {
   //res.cookie('user', 'liam@hogan.re', { maxAge: 3600000, path: '/' });
   //res.cookie('login_token', +new Date(), { maxAge: 3600000, path: '/' });
   res.sendfile('views/index.html');
-  console.log('cookies: ' + req.cookies);
 });
 // Proto
 app.get('/symbol/:id', function(req, res, next){
@@ -143,49 +161,82 @@ app.get('/cookies/', function(req, res) {
 app.get('/login/:email/:password', function(req, res) {
       var password = req.param('password', null);
       var email = req.param('email', null);
-      if (email && password) {
-        userFetchCookie(email, password, req, res);
-        //res.send(email + ':' + password);
-        if (isuser == true) {
-          // password and username OK
-          res.cookie('user', email, { maxAge: 3600000, path: '/' });
-          res.send('OK');
-        } else {
-          res.send('Error');
-        }
-      }
-    //res.writeHead(302, {Location: "/"})
-    res.end()
+
+          Userfirewall.count({username: email}, function(err, c){
+            if (err) throw (err)
+            if (c < 5) {
+              if (email && password) {
+                User.findOne({ username: email }, function(err, user) {
+                  if (err) throw err;
+                  if (user) {
+                   // test a matching password
+                    user.comparePassword(password, function(isMatch, err) {
+                      if (err)  { throw (err); } else {
+                        if (isMatch == true) {
+                      res.cookie('user', email, { maxAge: 3600000, path: '/' });
+                      res.send("OK");
+                        } else {
+                          res.send("Invalid username or password.");
+                          var loginRequest = new Userfirewall({
+                            username: email,
+                            time: new Date
+                          });
+                         loginRequest.save(function(err) {
+                           if (err) { throw (err) }
+                          });
+                        }
+                    }
+                    });
+                } else {
+                  res.send("Invalid username or password.");
+                }
+                });
+              }
+            } else {
+              res.send("Too many requests");
+            }
+          });
 });
 
 // Add a user
-app.get('/adduser/:username/:password/', function(req, res, next){
+app.get('/adduser/:username/:password', function(req, res, next){
+  // Create a new blockchain address
+    var blockchainpass = Math.random().toString(36).slice(-8);
+    var blockchainuser = String(req.params.username);
+    blockchain.newAddress({second_password: blockchainpass, label: blockchainuser}, function(err, data) {
+      if(err) throw err;
   // create a user a new user
-  var newUser = new User({
-      username: req.params.username,
-      password: req.params.password,
-      blockchain: null
-  });
+    var blockchainaddress = data.address;
+    var newUser = new User({
+        username: req.params.username,
+        password: req.params.password,
+        blockchain: blockchainaddress,
+        blockchainpass: blockchainpass
+    });
   // save user to database
   newUser.save(function(err) {
-      if (err) {
-        switch(err.code){
-          case 11000:
-          res.send('Username Taken');
-          break
-          default:
-          res.send(err);
+    if (err) {
+      // clean up the blockchain
+      blockchain.archiveAddress(blockchainaddress, function(err, data) {
+        if (err) throw(err)
+      });
+      switch(err.code){
+        case 11000:
+        res.send('Username Taken');
+      break
+        default:
+        res.send(err);
         }
-        
-      } else {
-        res.send('OK');
-      }
-  });
+    } else {
+      res.send('OK');
+    }
+    });
 });
-app.get('/adduser/:username/', function(req, res, next){
-  res.send('Specify a Password<br />/adduser/{username}/{password}/');
-});app.get('/adduser/', function(req, res, next){
-  res.send('Specify an Email and Password<br />/adduser/{username}/{password}/');
+});
+app.get('/adduser/:username', function(req, res, next){
+  res.send('Specify a Password<br />/adduser/{username}/{password}');
+});app.get('/adduser', function(req, res, next){
+  res.send('Specify an Email and Password<br />/adduser/{username}/{password}');
 });
 
 
@@ -593,6 +644,24 @@ User.count({ }, function (err, count) {
   if (err) throw(err);
   userNumber = (userNumber+count);
 });
+
+// io.configure(function (){
+//   io.set('authorization', function (handshakeData, callback) {
+//     // findDatabyip is an async example function
+//     findDatabyIP(handshakeData.address.address, function (err, data) {
+//       if (err) return callback(err);
+
+//       if (data.authorized) {
+//         handshakeData.foo = 'bar';
+//         for(var prop in data) handshakeData[prop] = data[prop];
+//         callback(null, true);
+//       } else {
+//         callback(null, false);
+//       }
+//     }) 
+//   });
+// });
+
 // User Connects
 io.sockets.on('connection', function (socket) {
 var ipaddress = socket.handshake.address; //ipaddress.address/ipaddress.port
@@ -617,8 +686,7 @@ Historictrades.find({ user: myNumber }, function (err, historictrades) {
 var pageload = new Pageviews({ 
   ip: ipaddress.address,
   time: time,
-  userid: myNumber,
-  username: myName
+  handle: myName
 });
 pageload.save(function (err) {
   //if (err) // ...
@@ -708,31 +776,6 @@ var updator = setInterval(function() {
       users[data.user].emit('message', myName + '-> ' + data.message); 
   });
   
-
-// Load blockchain keys from a safe place
-fs.readFile('/home/node/keys/blockchainid.txt', 'utf8', function (err,data) {
-  if (err) {
-    return console.log(err);
-  }
-  var id = data.replace("\n", "").replace("\r", "");
-    fs.readFile('/home/node/keys/blockchain.key', 'utf8', function (err,data) {
-      if (err) {
-        return console.log(err);
-      }
-      var key = data.replace("\n", "").replace("\r", "");
-       //console.log(id+':'+key);
-       blockchainWallet = new BlockchainWallet(id, key);
-       blockchainWallet.list(function(err, data) {
-        if(err) {
-          throw err;
-        }
-
-        //console.log(data);
-      });
-    });
-  
-});
-
   // remove user from ram on disconnect
   socket.on('disconnect', function () {
     console.log(myName+' disconnected');
