@@ -46,6 +46,33 @@ Pageviews.remove({}, function(err) {
 //   if (err) console.log(err);  
 // });
 
+// Webserver
+
+// Include SSL server.key and domain.crt
+var options = {
+  key: fs.readFileSync('/home/node/keys/server.key'),
+  cert: fs.readFileSync('/home/node/keys/vbit_io.crt')
+}
+// Start secure webserver
+//var keys = new Keygrip(["SEKRIT2", "SEKRIT1"]);
+var app = module.exports = express();
+app.configure(function() {
+  app.use(express.static('public'));
+  app.use(app.router);
+  app.use(express.cookieParser('SEKRIT1'));
+  app.use(passport.initialize());
+  app.use(passport.session());
+  app.use(express.bodyParser());
+});
+
+var server = https.createServer(options, app).listen(port, function(){
+  console.log("Express server listening on port " + port);
+});
+
+// Start secure socket server
+var io = require('socket.io').listen(3000, options);
+io.set('log level', 1); // reduce logging
+
 
 // User management
 var User = require('user-model');
@@ -105,169 +132,6 @@ fs.readFile('/home/node/keys/blockchainid.txt', 'utf8', function (err,data) {
         blockchain = new BlockchainWallet(id, key);
       });
     });
-
-// Webserver
-
-// Include SSL server.key and domain.crt
-var options = {
-  key: fs.readFileSync('/home/node/keys/server.key'),
-  cert: fs.readFileSync('/home/node/keys/vbit_io.crt')
-}
-// Start secure webserver
-//var keys = new Keygrip(["SEKRIT2", "SEKRIT1"]);
-var app = module.exports = express();
-app.configure(function() {
-  app.use(express.static('public'));
-  app.use(app.router);
-  app.use(express.cookieParser('SEKRIT1'));
-  app.use(passport.initialize());
-  app.use(passport.session());
-  app.use(express.bodyParser());
-});
-
-var server = https.createServer(options, app).listen(port, function(){
-  console.log("Express server listening on port " + port);
-});
-
-// Start secure socket server
-var io = require('socket.io').listen(3000, options);
-io.set('log level', 1); // reduce logging
-
-
-// Use the Views directory
-app.use('/', express.static(__dirname + '/views'));
-// Send index
-app.get('/', function(req,res) {
-  //res.cookie('user', 'liam@hogan.re', { maxAge: 3600000, path: '/' });
-  //res.cookie('login_token', +new Date(), { maxAge: 3600000, path: '/' });
-  res.sendfile('views/index.html');
-});
-// Proto
-app.get('/symbol/:id', function(req, res, next){
-  res.send(req.params.id);
-  //res.render('index.html');
-});
-app.get('/trade/:id', function(req, res, next){
-  res.send(req.params.id);
-  //res.render('index.html');
-});
-
-app.get('/cookies/', function(req, res) {
-  res.cookie('user', 'leo', { maxAge: 3600000, path: '/' });
-  res.send('mmm');
-  res.end();
-});
-
-app.get('/login/:email/:password', function(req, res) {
-      var password = decodeURI(req.param('password', null));
-      var email = decodeURI(req.param('email', null));
-      console.log('login request recieved: ' + email + ':' + password);
-          Userfirewall.count({username: email}, function(err, c){
-            if (err) throw (err)
-            if (c < 5) {
-              if (email && password) {
-                User.findOne({ username: email }, function(err, user) {
-                  if (err) throw err;
-                  if (user) {
-                   // test a matching password
-                    user.comparePassword(password, function(isMatch, err) {
-                      if (err)  { throw (err); } else {
-                        if (isMatch == true) {
-                           console.log(isMatch);
-                      res.cookie('user', email, { maxAge: 3600000, path: '/' });
-                      res.send("OK");
-                        } else {
-                          res.send("Invalid username or password.");
-                          var now = new Date();
-                          var loginRequest = new Userfirewall({
-                            username: email,
-                            createdAt: now
-                          });
-                         loginRequest.save(function(err) {
-                           if (err) { throw (err) }
-                          });
-                        }
-                    }
-                    });
-                } else {
-                  res.send("Invalid username or password.");
-                }
-                });
-              }
-            } else {
-              res.send("Too many requests.");
-            }
-          });
-});app.get('/login', function(req, res){
-  res.send('Usage: /login/{email}/{password}');
-});
-
-// Add a user
-app.get('/adduser/:username/:password', function(req, res, next){
-  // Create a new blockchain address
-    var blockchainpass = Math.random().toString(36).slice(-8);
-    var blockchainuser = String(req.params.username);
-    blockchain.newAddress({second_password: blockchainpass, label: blockchainuser}, function(err, data) {
-      if(err) throw err;
-  // create a user a new user
-    var blockchainaddress = data.address;
-    var newUser = new User({
-        username: req.params.username,
-        password: req.params.password,
-        blockchain: blockchainaddress,
-        blockchainpass: blockchainpass
-    });
-  // save user to database
-  newUser.save(function(err) {
-    if (err) {
-      // clean up the blockchain
-      blockchain.archiveAddress(blockchainaddress, function(err, data) {
-        if (err) throw(err)
-      });
-      switch(err.code){
-        case 11000:
-        res.send('Username Taken');
-      break
-        default:
-        res.send(err);
-        }
-    } else {
-      res.send('OK');
-    }
-    });
-});
-});
-app.get('/adduser/:username', function(req, res, next){
-  res.send('Specify a Password<br />/adduser/{username}/{password}');
-});app.get('/adduser', function(req, res, next){
-  res.send('Specify an Email and Password<br />/adduser/{username}/{password}');
-});
-
-
-// passport.use(new LocalStrategy(
-//   function(username, password, done) {
-//     User.findOne({ username: username }, function (err, user) {
-//       if (err) { return done(err); }
-//       if (!user) {
-//         return done(null, false, { message: 'Incorrect username.' });
-//       }
-//       if (!user.comparePassword(password)) {
-//         return done(null, false, { message: 'Incorrect password.' });
-//       }
-//       return done(null, user);
-//     });
-//   }
-// ));
-
-// Load account and finance pages
-app.get('/account/', function(req, res, next){
-  //res.send(req.params.id);
-  res.sendfile('views/a.html');
-});
-app.get('/finance/', function(req, res, next){
-  //res.send(req.params.id);
-  res.sendfile('views/f.html');
-});
 
 
 // Tradeserver
@@ -382,7 +246,15 @@ function trade() {
   });
   console.log('$'+bank);
 }
-
+// function calculateImbalance(symbol) {
+//   Activetrades.find({symbol: symbol},function(err,trades){ 
+//     trades.forEach(function(elem, index, array) {
+//       elem.offer = "apple";
+//       elem.amount =
+//     elem.save();
+// });
+// }
+// }
 
 function addTrade(symbol, amount, direction, user, socket) {
   var err = {};
@@ -668,8 +540,9 @@ User.count({ }, function (err, count) {
 
 // User Connects
 io.sockets.on('connection', function (socket) {
-var ipaddress = socket.handshake.address; //ipaddress.address/ipaddress.port
-
+var hs = socket.handshake;
+var ipaddress = hs.address; //ipaddress.address/ipaddress.port
+console.log(hs.headers.cookie); 
 
 //Send user current data on connect
 for (index = 0; index < symbols.length; ++index) { 
@@ -685,6 +558,7 @@ Historictrades.find({ user: myNumber }, function (err, historictrades) {
 
   var myNumber = userNumber++;
   var myName = 'Guest' + myNumber;
+  var guest = true;
 
   // Log the connection
 var pageload = new Pageviews({ 
@@ -785,10 +659,152 @@ var updator = setInterval(function() {
     console.log(myName+' disconnected');
     users[myName] = null;
     userbalance[myNumber] = null;
+    if (guest == true) {
+      Historictrades.remove({ user: myNumber }, function (err) {
+      if (err) return handleError(err);
+      // removed!
+      });
+    }
     clearInterval(updator);
     io.sockets.emit('listing', getUsers());
   });
 });
+
+// Use the Views directory
+app.use('/', express.static(__dirname + '/views'));
+// Send index
+app.get('/', function(req,res) {
+  //res.cookie('user', 'liam@hogan.re', { maxAge: 3600000, path: '/' });
+  //res.cookie('login_token', +new Date(), { maxAge: 3600000, path: '/' });
+  res.sendfile('views/index.html');
+});
+// Proto
+app.get('/symbol/:id', function(req, res, next){
+  res.send(req.params.id);
+  //res.render('index.html');
+});
+app.get('/trade/:id', function(req, res, next){
+  res.send(req.params.id);
+  //res.render('index.html');
+});
+
+app.get('/cookies/', function(req, res) {
+  res.cookie('user', 'leo', { maxAge: 3600000, path: '/' });
+  res.send('mmm');
+  res.end();
+});
+
+app.get('/login/:email/:password', function(req, res) {
+      var password = decodeURI(req.param('password', null));
+      var email = decodeURI(req.param('email', null));
+      //console.log('login request recieved: ' + email + ':' + password);
+          Userfirewall.count({username: email}, function(err, c){
+            if (err) throw (err)
+            if (c < 5) {
+              if (email && password) {
+                User.findOne({ username: email }, function(err, user) {
+                  if (err) throw err;
+                  if (user) {
+                   // test a matching password
+                    user.comparePassword(password, function(isMatch, err) {
+                      if (err)  { throw (err); } else {
+                        if (isMatch == true) {
+                           //console.log(isMatch);
+                           res.cookie('key', 'signature', { maxAge: 360000, path: '/' });
+                           res.send("OK");
+                        } else if (isMatch == false) {
+                          res.send("Invalid username or password.");
+                          var now = new Date();
+                          var loginRequest = new Userfirewall({
+                            username: email,
+                            createdAt: now
+                          });
+                         loginRequest.save(function(err) {
+                           if (err) { throw (err) }
+                          });
+                        }
+                    }
+                    });
+                } else {
+                  res.send("Invalid username or password.");
+                }
+                });
+              }
+            } else {
+              res.send("Too many requests.");
+            }
+          });
+});app.get('/login', function(req, res){
+  res.send('Usage: /login/{email}/{password}');
+});
+
+// Add a user
+app.get('/adduser/:username/:password', function(req, res, next){
+  // Create a new blockchain address
+    var blockchainpass = Math.random().toString(36).slice(-8);
+    var blockchainuser = String(req.params.username);
+    blockchain.newAddress({second_password: blockchainpass, label: blockchainuser}, function(err, data) {
+      if(err) throw err;
+  // create a user a new user
+    var blockchainaddress = data.address;
+    var newUser = new User({
+        username: req.params.username,
+        password: req.params.password,
+        blockchain: blockchainaddress,
+        blockchainpass: blockchainpass
+    });
+  // save user to database
+  newUser.save(function(err) {
+    if (err) {
+      // clean up the blockchain
+      blockchain.archiveAddress(blockchainaddress, function(err, data) {
+        if (err) throw(err)
+      });
+      switch(err.code){
+        case 11000:
+        res.send('Username Taken');
+      break
+        default:
+        res.send(err);
+        }
+    } else {
+      res.send('OK');
+    }
+    });
+});
+});
+app.get('/adduser/:username', function(req, res, next){
+  res.send('Specify a Password<br />/adduser/{username}/{password}');
+});app.get('/adduser', function(req, res, next){
+  res.send('Specify an Email and Password<br />/adduser/{username}/{password}');
+});
+
+
+// passport.use(new LocalStrategy(
+//   function(username, password, done) {
+//     User.findOne({ username: username }, function (err, user) {
+//       if (err) { return done(err); }
+//       if (!user) {
+//         return done(null, false, { message: 'Incorrect username.' });
+//       }
+//       if (!user.comparePassword(password)) {
+//         return done(null, false, { message: 'Incorrect password.' });
+//       }
+//       return done(null, user);
+//     });
+//   }
+// ));
+
+// Load account and finance pages
+app.get('/account/', function(req, res, next){
+  //res.send(req.params.id);
+  res.sendfile('views/a.html');
+});
+app.get('/finance/', function(req, res, next){
+  //res.send(req.params.id);
+  res.sendfile('views/f.html');
+});
+
 
 
 function isNumber(n) {

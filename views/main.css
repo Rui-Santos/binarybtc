@@ -516,7 +516,16 @@ line-height: 30px;
 .hideme {
 display: none;
 }
-
+.tradewarning {
+  font-size: 11px;
+height: 12px;
+float: left;
+position: absolute;
+left: 36px;
+top: 190px;
+color: #707070;
+display: none;
+}
 .btn-success {
   background-color: hsl(113, 100%, 35%) !important;
   background-repeat: repeat-x;

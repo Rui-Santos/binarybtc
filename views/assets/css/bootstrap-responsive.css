@@ -858,7 +858,16 @@ float: left;
 }.sitename {
   display: none;
 }
-
+.tradewarning {
+font-size: 11px;
+height: 12px;
+float: left;
+position: absolute;
+left: 61%;
+top: 86px;
+color: #707070;
+display: none;
+}
 .callputcontainer {
 top: 4px;
 height: 88px;

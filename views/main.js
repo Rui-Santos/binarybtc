@@ -70,9 +70,9 @@ function displayOptions(displaysymbols) {
                   '<input type="number" class="form-control amountfield" style="height: 28px;" placeholder="">'+
             '</div></div>'+
             '<button type="button" class="btn btn-default applytrade apply'+symbol+'">Apply</button>'+
-
           '</div>'+
-         '</div>';
+         '</div>'+
+        '<span class="tradewarning">You cannot cancel a trade.</span>';
     var closed = '<div class="nooffer"><i class="fa fa-lock" style="font-size: 25px;"></i><br />Trading is Closed <br />'+symbol+':<span class="keystone'+symbol+'"></span></div>';
 
     //if trading is allowed on this symbol
@@ -122,6 +122,11 @@ var symbols = ['BTCUSD', 'EURUSD', 'GBPUSD', 'JPYUSD', '^DJI', 'CLJ14.NYM', 'GCJ
 
     socket.on('hello', function (data) {
       $('.username').html(data.hello);
+        $('.loginform').hover(function (e) {
+            $('.loginbtn').html('Login ');
+          }, function () {
+            $('.loginbtn').html('Guest');
+          });
       console.log('hello:', data.hello);
       user = data.hello;
       userid = data.id;
@@ -133,13 +138,17 @@ var symbols = ['BTCUSD', 'EURUSD', 'GBPUSD', 'JPYUSD', '^DJI', 'CLJ14.NYM', 'GCJ
    socket.on('userbal', function (data) {
       $('.userbal').html('m฿'+data+'');
       if (lastbal < data) {
-        //$('.userbal').effect("highlight", {color: 'hsl(113, 100%, 35%, 0.15)'}, 1530, "easeInOutCirc");
+        $('.userbal').addClass("btn-success").removeClass('btn-danger').removeClass('btn-blue');
       } else if (lastbal > data) {
-        //$('.userbal').effect("highlight", {color: 'hsl(360, 100%, 35%, 0.25)'}, 1530, "easeInOutCirc");
+        $('.userbal').addClass("btn-danger").removeClass('btn-success').removeClass('btn-blue');
+      } else {
+        $('.userbal').addClass("btn-blue").removeClass('btn-success').removeClass('btn-danger');
       }
       lastbal = data;
       //console.log(lastbal);
     });   
+
+
    socket.on('totalcall', function (data) {
       $('.totalcall').html(data);
     });   
@@ -458,19 +467,20 @@ $( ".usertrade" ).each(function( index ) {
     }
   });
 
+
   $('.loginbtn').click(function (e) {
     e.preventDefault();
     var email = $("#email").val();
     var password = $("#password").val();
     var url = encodeURIComponent("/login/" + email + "/" + password);
-    console.log(url);
+    //console.log(url);
     $.ajax({
       url: url,
       cache: false
     }).done(function( html ) {
       if (html == "Too many requests.") {
-        $('.loginbtn').removeClass('btn-success').addClass('btn-danger').html(html);
-      } else if (html = "Invalid username or password."){
+        $('.loginbtn').removeClass('btn-warning').addClass('btn-danger').html(html);
+      } else if (html == "Invalid username or password."){
         $('.loginbtn').removeClass('btn-success').addClass('btn-warning').html('Try again');
       }
       console.log( html );
