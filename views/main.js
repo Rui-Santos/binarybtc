@@ -459,30 +459,25 @@ $( ".usertrade" ).each(function( index ) {
   });
 
   $('.loginbtn').click(function (e) {
-    //e.preventDefault();
+    e.preventDefault();
     var email = $("#email").val();
     var password = $("#password").val();
-    // $.ajax({
-    //   url: "/login/" + email + "/" + password ,
-    //   cache: false
-    // }).done(function( html ) {
-    //   console.log( html );
-    // });
-    // $.post( "/login/", function( data ) {
-    //   $( ".result" ).html( data );
-    // });
-    // return false;
+    var url = encodeURIComponent("/login/" + email + "/" + password);
+    console.log(url);
+    $.ajax({
+      url: url,
+      cache: false
+    }).done(function( html ) {
+      if (html == "Too many requests.") {
+        $('.loginbtn').removeClass('btn-success').addClass('btn-danger').html(html);
+      } else if (html = "Invalid username or password."){
+        $('.loginbtn').removeClass('btn-success').addClass('btn-warning').html('Try again');
+      }
+      console.log( html );
+    });
+
   });
-// $('.loginbtn').click(function() {
-//     var email = $('#email').val();
-//     var password = $('#password').val();
-//     if (validateEmail(email)) {
-//       socket.emit('login', {
-//         email: email,
-//         password: password
-//       });
-//     }
-//   });
+
   socket.on('loginreturn', function (data) {
     console.log(data);
   });

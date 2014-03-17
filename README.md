@@ -18,4 +18,4 @@ Socket.io port: 3000
 Execution
 ---------------------
 
->node nope.js
+>node crackbit.js
