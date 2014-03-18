@@ -95,7 +95,7 @@ function displayOptions(displaysymbols) {
          '</div>'+
          '<div style="clear:both;"></div>'+
         '</div>');
-       $(".symbols").append(option[index]);
+       $(".symbols").prepend(option[index]);
       });
   }
 function showloginfield(username) {
@@ -708,15 +708,16 @@ symbol = symbolSwitch(symbol);
 $(function() {
 
 // UI Stuff
-  $( ".amountfield" ).keyup(function() {
-    var symbol = $(this).parent().parent().parent().attr('id');
-    var offer = $('#'+symbol+' .info .rawoffer').html();
-    var amount = $('#'+symbol+' .info .amount .amountfield').val();
+  $( ".amountfield" ).change(function() {
+    var symbol = $(this).parent().parent().parent().parent().attr('id');
+    var offer = $('#'+symbol+' .info .details .rawoffer').html();
+    var amount = $('#'+symbol+' .info .trader .amount .amountfield').val();
     if (amount > 0) {
       var possiblewin = (+amount+(amount*offer));
-      $('#'+symbol+' .info h1').html("m฿" + possiblewin.toFixed(2));
+      $('#'+symbol+' .info .details h1').html("m฿" + possiblewin.toFixed(2));
     } else {
-      $('#'+symbol+' .info h1').html(offer * 100 + "%");
+      $('#'+symbol+' .info .trader .amount .amountfield').val(0);
+      $('#'+symbol+' .info .details h1').html(offer * 100 + "%");
     }
   });
 
@@ -787,6 +788,7 @@ function showFinances() {
   });
 
   $(".btnuser").click(function () {
+    console.log('user btn');
     if (headercounter != 1) {
     headercounter = 1;
     showAccount();

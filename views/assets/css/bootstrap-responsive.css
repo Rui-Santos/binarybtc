@@ -64,7 +64,7 @@
 .visible-desktop {
   display: inherit !important;
 }
-
+/*
 @media (min-width: 768px) and (max-width: 979px) {
   .hidden-desktop {
     display: inherit !important;
@@ -108,7 +108,7 @@
   }
 }
 
-/*@media (min-width: 990px) {
+@media (min-width: 990px) {
   .row {
     margin-left: -30px;
     *zoom: 1;
@@ -964,7 +964,7 @@ height: 88px;
     top: 20px;
   }
 }
-
+/*
 @media (max-width: 480px) {
   .nav-collapse {
     -webkit-transform: translate3d(0, 0, 0);
@@ -1175,3 +1175,4 @@ height: 88px;
     overflow: visible !important;
   }
 }
+*/

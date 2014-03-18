@@ -103,8 +103,9 @@ var put = 0;
 var call = 0;
 var maxamount = 10; // the max amount a user can set for any one trade
 //var maxoffset = 10; // the max difference (in currency) between calls/puts on a symbol before shaping (zero to disable)
+var cuttrading = 0; // seconds before trading where the user is locked out from adding a trade (zero to disable)
 var offer = 0.75;
-var tradeevery = 30; // Default time in minutes before trading again
+var tradeevery = 10; // Default time in minutes before trading again
 var userNumber = 1;
 var userbalance = new Array();
 var trades = new Array();
@@ -529,52 +530,29 @@ User.count({ }, function (err, count) {
 });
 
 // Socketeering
-
+var myName, myNumber;
 // User Connects
 io.sockets.on('connection', function (socket) {
   var hs = socket.handshake;
   var ipaddress = hs.address; //ipaddress.address/ipaddress.port
+  ipaddress = ipaddress.address;
 
-  var  myNumber = userNumber++;
-  var  myName = 'Guest'+userNumber;
+  var isloggedin = checkcookie(socket);
+console.log(ipaddress+' is logged in: '+isloggedin);
+  myNumber = userNumber++;
+  myName = 'Guest'+myNumber;
 
-  //Parse existing cookies
-  if (hs.headers.cookie) {
-    var cookie = hs.headers.cookie;
-    var cookieObj = {};
-    var cookieArr = cookie.split(';');
-    for (index = 0; index < cookieArr.length; ++index) {
-      var cookieKV = cookieArr[index];
-      cookieKV = cookieKV.trim();
-      var cookieKVArr = cookieKV.split('=');
-      cookieObj[cookieKVArr[0]] = cookieKVArr[1];
-      //console.log(cookieObj.key);
-    }
-    if (cookieObj.key) {
-      Activeusers.find({ key: cookieObj.key }, function (err, docs) {
-        if (err) throw (err);
-        docs = docs[0];
-        // User authorized
-        //console.log(docs.user + ":" + docs.key);
+// Assign the socket to a user array
+  users[myNumber] = socket;
 
-        // Log the connection
-        var pageload = new Pageviews({ 
-          ip: ipaddress.address,
-          time: time,
-          handle: myName
-        });
-        pageload.save(function (err) {
-          //if (err) // ...
-          myName = docs.user;
-          myNumber = userNumber;
-          console.log(myName+':'+myNumber+' connected');
-        });
-      });
-      }
-    }
+// Add the users banace to the global blanace array and let them know strait away
+  if (userbalance[myName] == null) { 
+  userbalance[myName] = 10;
+  }
+  socket.emit('userbal', userbalance[myName]);
 
   // Say hello
-  console.log('hello ' + myName + ':' + myNumber)
+  console.log('hello ' + myName + ':id' + myNumber + ':$' + userbalance[myName])
   socket.emit('hello', { hello: myName, id: myNumber });
 
   //Send user current data on connect
@@ -587,12 +565,6 @@ io.sockets.on('connection', function (socket) {
     socket.emit('historictrades', historictrades);
   });
 
-// Assign the socket to a user array
-  users[myNumber] = socket;
-
-// Add the users banace to the global blanace array and let them know strait away
-  userbalance[myName] = 10;
-  socket.emit('userbal', userbalance[myName]);
 
   // Emit any active trades on pageload
   if (trades) {
@@ -817,6 +789,47 @@ app.get('/finance/', function(req, res, next){
 });
 
 // function wasteland */
+
+function checkcookie(socket) {
+var result = null;
+  //Parse existing cookies
+  if (socket.handshake.headers.cookie) {
+    var cookie = hs.headers.cookie;
+    var cookieObj = {};
+    var cookieArr = cookie.split(';');
+    for (index = 0; index < cookieArr.length; ++index) {
+      var cookieKV = cookieArr[index];
+      cookieKV = cookieKV.trim();
+      var cookieKVArr = cookieKV.split('=');
+      cookieObj[cookieKVArr[0]] = cookieKVArr[1];
+      //console.log(cookieObj.key);
+    }
+    if (cookieObj.key) {
+      Activeusers.find({ key: cookieObj.key }, function (err, docs) {
+        if (err) { } else {
+        docs = docs[0];
+        // User authorized
+        if (docs) {
+          //console.log(docs.user + ":" + docs.key);
+            result = {user: docs.user, number: userNumber};
+            //console.log(myName+':'+myNumber+' connected');
+          // Log the connection
+          var pageload = new Pageviews({ 
+            ip: ipaddress.address,
+            time: time,
+            handle: myName
+          });
+          pageload.save(function (err) { 
+            if (err) throw (err);
+          }); 
+        } // if docs
+        }
+      });
+      }
+    } // if cookie
+return result;
+}
+
 
 function round(num, places) {
     var multiplier = Math.pow(10, places);
