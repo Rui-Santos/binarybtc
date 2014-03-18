@@ -26,6 +26,8 @@ function symbolSwitch(symbol) {
     return symbol;
 }
 
+
+
 var autocolor = 1;
 function uitradeico(symbol, direction, manual) {
   if (manual) { autocolor = 0; }
@@ -67,7 +69,7 @@ function displayOptions(displaysymbols) {
           '</div><div class="trader">' +
             '<div class="input-group amount">'+
                   '<span class="input-group-addon">m฿</span>'+
-                  '<input type="number" class="form-control amountfield" style="height: 28px;" placeholder="">'+
+                  '<input type="number" class="form-control amountfield" placeholder="">'+
             '</div></div>'+
             '<button type="button" class="btn btn-default applytrade apply'+symbol+'">Apply</button>'+
           '</div>'+
@@ -96,6 +98,25 @@ function displayOptions(displaysymbols) {
        $(".symbols").append(option[index]);
       });
   }
+function showloginfield(username) {
+if (username) {
+  var login = '<div class="btn-group accountinfo" style="padding: 0px;">'+
+        '<button type="button" style="height: 31px;" class="btn btn-success btnuser username">'+username+'</button>'+      
+        '<button type="button" style="height: 31px;" class="btn btn-blue userbal btnfinance"></button>'+
+      '</div>';
+} else { 
+  var login = '<div class="btn-group accountinfo" style="padding: 0px; ">' +
+        '<button type="button" style="height: 31px;" class="btn btn-blue balancebtn userbal"></button>' +
+        '<div class="input-group input-group-sm loginform">' +
+        '<form action="/login/" method="post">  <input type="text" autocomplete="off" class="form-control headerlogin headerusername" name="email" id="email" placeholder="Email">' +
+        '<input type="password" autocomplete="off" class="form-control headerlogin" name="password" id="password" placeholder="Password">' +
+        '<button type="submit" style="height: 31px;border-radius: 0px 4px 4px 0px;" class="btn btn-success loginbtn username">Login</button>' +
+        '</form></div>'+
+    '</div>';
+}
+    $('.topcontainer .right').html(login);
+}
+
   $(function () {
     // $('.box').cycle({ 
     // fx:     'scrollLeft', 
@@ -119,17 +140,12 @@ var symbols = ['BTCUSD', 'EURUSD', 'GBPUSD', 'JPYUSD', '^DJI', 'CLJ14.NYM', 'GCJ
 
    displayOptions(displaysymbols);
 
-
     socket.on('hello', function (data) {
       $('.username').html(data.hello);
-        $('.loginform').hover(function (e) {
-            $('.loginbtn').html('Login ');
-          }, function () {
-            $('.loginbtn').html('Guest');
-          });
-      console.log('hello:', data.hello);
+      showloginfield(data.hello);
+      console.log('hello:', data.hello+' '+data.id);
       user = data.hello;
-      userid = data.id;
+      userid = data.id; //
     });
   var lastbal = 0;
    socket.on('bankbal', function (data) {
@@ -177,6 +193,7 @@ var symbols = ['BTCUSD', 'EURUSD', 'GBPUSD', 'JPYUSD', '^DJI', 'CLJ14.NYM', 'GCJ
       $('.servertime').html(date.customFormat( "#hhh#:#mm#:#ss#" ));      
     }); 
    // New Trade
+
 
 
 // Keystones and Prices
@@ -404,14 +421,14 @@ $( ".usertrade" ).each(function( index ) {
           var symbol = $(this).parent().parent().attr('id');
           var direction = $('#'+symbol+' .info .direction .action').html();
           var amount = Number($('#'+symbol+' .info .amount .amountfield').val());
-
+          console.log('New trade:' + user +':'+ symbol +':'+ amount +':'+ direction)
           amount = amount.toFixed(2);
           //user = userid;
           socket.emit('trade', {
             symbol : symbol,
             amount : amount,
             direction : direction,
-            user : userid
+            user : user
           });
       });
 
@@ -460,8 +477,8 @@ $( ".usertrade" ).each(function( index ) {
 
   socket.on('validateemailresponce', function (data) {
     $('.loginbtn').html(data);
-    if (data == 'Signup') {
-      $('.loginbtn').addClass('btn-warning');
+    if (data != 'Guest') {
+
     } else {
       $('.loginbtn').removeClass('btn-warning');
     }
@@ -482,6 +499,9 @@ $( ".usertrade" ).each(function( index ) {
         $('.loginbtn').removeClass('btn-warning').addClass('btn-danger').html(html);
       } else if (html == "Invalid username or password."){
         $('.loginbtn').removeClass('btn-success').addClass('btn-warning').html('Try again');
+      } else if (html == "OK") {
+        $('.loginbtn').removeClass('btn-warning').addClass('btn-success').html('Logged in');
+        setTimeout(function(){location.reload()},1000);
       }
       console.log( html );
     });
@@ -555,6 +575,7 @@ function updateChart(symbol, data) {
   var series = h.series[0]; // shift if the series is 
                                                  // longer than 20
             h.series[0].addPoint(data, true);
+  // Currently this code can only handle the display of one live chart at a time
 }
 var chartinit = {};
 function loadChart(symbol, data) {

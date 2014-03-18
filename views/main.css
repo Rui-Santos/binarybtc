@@ -35,8 +35,14 @@ display: table-cell;
         margin: 300px 0 30px 0;
       }
       .topcontainer {
+        position: relative;
         margin: 0 auto;
         width: 960px;
+      }
+      .right {
+        position: absolute;
+        top: 0px;
+        right: 0px;
       }
       .topcontainer > hr {
         margin: 300px 0 30px 0;
@@ -148,7 +154,12 @@ display: table-cell;
         width: 100px;
         margin: auto;
         margin-top: 15px;
-        }.info h1 {
+        }
+        .amountfield {
+          padding: 4px;
+          height: 28px;
+        }
+        .info h1 {
           margin: 0px !important;
           font-size: 26px;
         }

@@ -27,6 +27,8 @@ fs.readFile('/home/node/keys/mongo.key', 'utf8', function (err,data) {
 });
 
 // Setup database schemas and models
+var schema = new mongoose.Schema({ key: 'string', user: 'string', createdAt: { type: Date, expires: '1h' }});
+var Activeusers = mongoose.model('activeusers', schema);
 var schema = new mongoose.Schema({ username: 'string', createdAt: { type: Date, expires: '1h' }});
 var Userfirewall = mongoose.model('userfirewall', schema);
 var schema = new mongoose.Schema({ ip: 'string', time: 'string', handle: 'string' });
@@ -48,7 +50,7 @@ Pageviews.remove({}, function(err) {
 
 // Webserver
 
-// Include SSL server.key and domain.crt
+// Include SSL server.key and domain.crt from a safe place
 var options = {
   key: fs.readFileSync('/home/node/keys/server.key'),
   cert: fs.readFileSync('/home/node/keys/vbit_io.crt')
@@ -64,7 +66,7 @@ app.configure(function() {
   app.use(passport.session());
   app.use(express.bodyParser());
 });
-
+// Create the server object
 var server = https.createServer(options, app).listen(port, function(){
   console.log("Express server listening on port " + port);
 });
@@ -73,51 +75,10 @@ var server = https.createServer(options, app).listen(port, function(){
 var io = require('socket.io').listen(3000, options);
 io.set('log level', 1); // reduce logging
 
-
-// User management
+// User Middleware
 var User = require('user-model');
 
-function userCheck(username) {
-  var usern = null;
-  // fetch user and test password verification
-  User.findOne({ username: username }, function(err, user) {
-    if (err) throw err;
-    if (user != null){
-    usern = user.username;
-    }
-  });
-  return usern;
-}
-function userFetch(username, password) {
-// fetch user and test password verification
-User.findOne({ username: username }, function(err, user) {
-    if (err) throw err;
-    if (user) {
-     // test a matching password
-    user.comparePassword(password, function(err, isMatch) {
-         if (err) throw err;
-         console.log(isMatch);
-         return isMatch;
-    });
-  }
-});
-}
-// function userFetchCookie(username, password) {
-//   console.log('userFetchCookie: '+username+':'+password);
-// // fetch user and test password verification
-// User.findOne({ username: username }, function(err, user) {
-//     if (err) throw err;
-//     if (user) {
-//      // test a matching password
-//     user.comparePassword(password, function(err, isMatch) {
-//       if (err) throw err;
-//       console.log('find the matching password: '+isMatch);
-//     });
-//   }
-//   });
-// }
-
-// Blockchain
+// Blockchain Middleware
 var blockchain;
 fs.readFile('/home/node/keys/blockchainid.txt', 'utf8', function (err,data) {
   if (err) {
@@ -130,48 +91,75 @@ fs.readFile('/home/node/keys/blockchainid.txt', 'utf8', function (err,data) {
       }
       var key = data.replace("\n", "").replace("\r", "");
         blockchain = new BlockchainWallet(id, key);
-      });
     });
+});
 
+// Tradeserver Variables
+              //Bitcoin   Euro      Pound    Yen       Dow     Oil           Gold        Silver  S&P 500   Nasdaq
+var symbols = ['BTCUSD', 'EURUSD', 'GBPUSD', 'JPYUSD', '^DJI', 'CLJ14.NYM', 'GCJ14.CMX', 'SLV', '^GSPC', '^IXIC'];
 
-// Tradeserver
 var bank = 100;
 var put = 0;
 var call = 0;
 var maxamount = 10; // the max amount a user can set for any one trade
-var maxoffset = 10; // the max difference (in currency) between calls/puts on a symbol before shaping (zero to disable)
-console.log('Max amount: '+maxamount);
+//var maxoffset = 10; // the max difference (in currency) between calls/puts on a symbol before shaping (zero to disable)
 var offer = 0.75;
-var expires = '30 Minutes';
-var price = {};
-var a = 0;
-var trades = new Array();
-              //Bitcoin   Euro      Pound    Yen       Dow     Oil           Gold        Silver  S&P 500   Nasdaq
-var symbols = ['BTCUSD', 'EURUSD', 'GBPUSD', 'JPYUSD', '^DJI', 'CLJ14.NYM', 'GCJ14.CMX', 'SLV', '^GSPC', '^IXIC'];
-
-var users = {};
+var tradeevery = 30; // Default time in minutes before trading again
 var userNumber = 1;
 var userbalance = new Array();
-var time = 0;
-var clock = setInterval(function() {
-  time = new Date().getTime();
-  //console.log(Date(time));
-  io.sockets.emit('servertime', time);
-}, 1000);
-
+var trades = new Array();
+var users = {};
+var price = {};
 var ratio = {};
 var calls = {};
 var puts = {};
 var totalcall = {};
 var totalput = {};
+var a = 0;
+
+// Global clock
+var date,time = 0;
+var clock = setInterval(function() {
+  time = new Date().getTime();
+  date = new Date();
+  //console.log(Date(time));
+  io.sockets.emit('servertime', time);
+}, 1000);
 
 
+// The wild-west of functions
+
+// Check if a user exists
+function userCheck(username) {
+  var usern = null;
+  // fetch user and test password verification
+  User.findOne({ username: username }, function(err, user) {
+    if (err) throw err;
+    if (user != null){
+    usern = user.username;
+    }
+  });
+  // return the username or null
+  return usern;
+}
+// Check if a username and password are true
+function userFetch(username, password) {
+  // Find the user in the database
+  User.findOne({ username: username }, function(err, user) {
+    if (err) throw err;
+    if (user) {
+     // Test the supplied password using middleware
+    user.comparePassword(password, function(err, isMatch) {
+         if (err) throw err;
+         // return true or false
+         return isMatch;
+    });
+  }
+});
+}
+
+// Master trade function
 function trade() {
-    ratio = {}; //Reset global objects
-    calls = {};
-    puts = {};
-    totalcall = {};
-    totalput = {};
   var index;//Loop the trades
     for (index = 0; index < trades.length; ++index) {
       var entry = trades[index]; ///example data
@@ -181,10 +169,11 @@ function trade() {
       var amount = entry[3];//5
       var direction = entry[4]; //Call
       var tradetime = entry[5]; //1393712774917
-      var tradeuser = entry[6]; //3
+      var tradeuser = entry[6]; //Guest123
       var outcome = null;
       var winnings = 0;
 
+      // Check the direction and calculate the outcome
       if (direction == 'Put'){
         if (tradeprice > price[tradesymbol]){
           outcome = 'Win';//Win
@@ -239,34 +228,40 @@ function trade() {
     });
 
     }//foreach trade
-  // empty the ram and database of old trades
+  // empty the ram and database of old objects
+  ratio = {};
+  calls = {};
+  puts = {};
+  totalcall = {};
+  totalput = {};
   trades = [];
   Activetrades.remove({}, function(err) {
   if (err) console.log(err);  
   });
   console.log('$'+bank);
 }
-// function calculateImbalance(symbol) {
-//   Activetrades.find({symbol: symbol},function(err,trades){ 
-//     trades.forEach(function(elem, index, array) {
-//       elem.offer = "apple";
-//       elem.amount =
-//     elem.save();
-// });
-// }
-// }
 
+// Add a trade for a user
 function addTrade(symbol, amount, direction, user, socket) {
   var err = {};
   symbol = symbolswitch(symbol);
+  // Check the amount
   if (amount > 0) {
+  // Check the direction
   if (direction == 'Call' || direction == 'Put') {
+    // Put the amount info a number
     amount = Number(amount);
+    // Check if the amount is over maxamount
     if (amount <= maxamount) {
+      // Check if the amount is over the user balance
       if (userbalance[user] >= amount) {
+      // Get the server time from the global clock
       var now = time;
+      // Update the user balance
       userbalance[user] = round((userbalance[user]-amount), 2);
+      // Announe the trade
       console.log('New trade:'+user +':'+ symbol+':'+direction+':'+amount);
+      // Adjust the totals
       if (direction == 'Call') {
         if (calls[symbol]) { calls[symbol]++; }else {calls[symbol] = 1}
         totalcall[symbol] = Number(totalcall[symbol]) + Number(amount);
@@ -274,9 +269,11 @@ function addTrade(symbol, amount, direction, user, socket) {
         if (puts[symbol]) { puts[symbol]++; }else {puts[symbol] = 1}
         totalput[symbol] = Number(totalput[symbol]) + Number(amount);
       }
+      // Adjust the ratios
       var t = Number(calls[symbol]) + Number(puts[symbol]);
       ratio[symbol] = (Number(calls[symbol]) / Number(t) * 100);
 
+      // Insert the trade into the database
       var dbactivetrades = new Activetrades({ 
         symbol: symbol,
         price: price[symbol],
@@ -289,6 +286,7 @@ function addTrade(symbol, amount, direction, user, socket) {
       dbactivetrades.save(function (err) {
       });
 
+      // Inser the trade into the ram
       var valueToPush = new Array();
       valueToPush[0] = symbol;
       valueToPush[1] = price[symbol];
@@ -303,43 +301,60 @@ function addTrade(symbol, amount, direction, user, socket) {
       socket.emit('activetrades', trades);
       a++;
     } else {
+      // The amount is larger than the user's balance
       err.sym = symbol;
       err.msg = '';
       socket.emit('tradeerror', err);
     } // err
   } else {
+    // The amount is over the max ammount
     err.sym = symbol;
     err.msg = '';
     socket.emit('tradeerror', err);
   }
-  } // direction
+  } else {
+    // The direction is invalid
+  }
   }else {
+    // The amount is not over zero
     err.sym = symbol;
     err.msg = '';
     socket.emit('tradeerror', err);
-  } // amount
+  }
 }
 
+// Calculate the next trade
 function checknextTrade() {
-      var nexttrade = new Date();
-      var mins = nexttrade.getMinutes();
-      mins = (59-mins) % 10;
-      var secs = nexttrade.getSeconds();
-      if (secs != 60){
-      secs = (59-secs) % 60;
-      } else {
-      secs = 00;
-      }
-      nexttrade = [Number(mins),Number(secs)];
-      io.sockets.emit('nexttrade', nexttrade);
-
-      if (mins == 0 && secs == 0){
-        trade();
-      }
-      return nexttrade;
+  // Get minutes in the global date object [10:01:02AM]
+  var mins = date.getMinutes(); // [01]
+    mins = (59-mins) % tradeevery; // Trade every % ten minutes
+  // Get seconds
+  var secs = date.getSeconds(); // [02]
+  if (secs != 60){
+    secs = (59-secs) % 60;
+  } else {
+    secs = 00;
+  }
+  var nexttrade = [Number(mins),Number(secs)];  // Put the next trade in an array [8:58]
+  io.sockets.emit('nexttrade', nexttrade); // Emit to chrome
+  // If it's time to trade
+  if (mins == 0 && secs == 0){
+    trade();
+  }
+// Kindly reurn the next trade array
+  return nexttrade;
 }
 
-
+// Proto trade shaping
+// function calculateImbalance(symbol) {
+//   Activetrades.find({symbol: symbol},function(err,trades){ 
+//     trades.forEach(function(elem, index, array) {
+//       elem.offer = "apple";
+//       elem.amount =
+//     elem.save();
+// });
+// }
+// }
 
 
 function getUsers () {
@@ -442,7 +457,7 @@ http.get(options, function(resp){
 }
 }
 
-// price and chart updators
+// price and chart updaters
 
 var i = 0;
 var lastentry, firstentry, timewindow, chartsymbol, lastprice;
@@ -482,7 +497,7 @@ function updateChart(data, symbol, force) {
             }
               i++;
               timewindow = lastentry - firstentry;
-             if (timewindow > 3600000) {
+             if (timewindow > 1800000) {
               i--;
               chartdata.shift();
               io.sockets.emit(chartsymbol, chart[symbol]);
@@ -491,6 +506,8 @@ function updateChart(data, symbol, force) {
       } 
     //}
 }
+
+// Emit a single updated chart point for the client
 function chartPoint( data, symbol) {
           chartsymbol = symbol + '_updatedchart';
         if (Number(data)) {
@@ -500,18 +517,8 @@ function chartPoint( data, symbol) {
 }
 
 
-function round(num, places) {
-    var multiplier = Math.pow(10, places);
-    return Math.round(num * multiplier) / multiplier;
-}
-
-// Timers and updators
-// var priceupdator = setInterval(function() {
-// }
-// }, 4000);
-
 var symbolindex = 0;
-var tradeupdator = setInterval(function() {
+var tradeupdater = setInterval(function() {
 for (index = 0; index < symbols.length; ++index) {
     getPrice(symbols[index], 1);
 }
@@ -521,154 +528,144 @@ User.count({ }, function (err, count) {
   userNumber = (userNumber+count);
 });
 
-// io.configure(function (){
-//   io.set('authorization', function (handshakeData, callback) {
-//     // findDatabyip is an async example function
-//     findDatabyIP(handshakeData.address.address, function (err, data) {
-//       if (err) return callback(err);
-
-//       if (data.authorized) {
-//         handshakeData.foo = 'bar';
-//         for(var prop in data) handshakeData[prop] = data[prop];
-//         callback(null, true);
-//       } else {
-//         callback(null, false);
-//       }
-//     }) 
-//   });
-// });
+// Socketeering
 
 // User Connects
 io.sockets.on('connection', function (socket) {
-var hs = socket.handshake;
-var ipaddress = hs.address; //ipaddress.address/ipaddress.port
-console.log(hs.headers.cookie); 
+  var hs = socket.handshake;
+  var ipaddress = hs.address; //ipaddress.address/ipaddress.port
 
-//Send user current data on connect
-for (index = 0; index < symbols.length; ++index) { 
-    io.sockets.emit(symbols[index]+'_price', price[symbols[index]]);
-    io.sockets.emit(symbols[index]+'_chart', chart[symbols[index]]);
-}
-Historictrades.find({ user: myNumber }, function (err, historictrades) {
-  //console.log(historictrades)
-  socket.emit('historictrades', historictrades);
-});
+  var  myNumber = userNumber++;
+  var  myName = 'Guest'+userNumber;
 
-// Users
-
-  var myNumber = userNumber++;
-  var myName = 'Guest' + myNumber;
-  var guest = true;
-
-  // Log the connection
-var pageload = new Pageviews({ 
-  ip: ipaddress.address,
-  time: time,
-  handle: myName
-});
-pageload.save(function (err) {
-  //if (err) // ...
-  console.log(myName+' connected');
-});
-
-
-  users[myNumber] = socket;
-  userbalance[myNumber] = 10;
-if (trades) {
-socket.emit('activetrades', trades);
-}
-
-//console.log('user connected.');
-//console.log(chartdata);
-
-  socket.on('trade', function (data) {
-    var re = new RegExp(/[\s\[\]\(\)=,"\/\?@\:\;]/g); 
-    if (re.test(data.amount)) { console.log('Illegal trade input from '+myName); } else {
-    addTrade(data.symbol, data.amount, data.direction, data.user, socket);
-    socket.emit('activetrades', trades);
-      }
-  });
-  socket.on('action', function (data) {
-    console.log('action: '+data);
-  });
-
-
-    socket.emit('userbal', userbalance[myNumber]);
-var updator = setInterval(function() {
-  socket.emit('userbal', userbalance[myNumber]);
-  if (trades) {
-    socket.emit('activetrades', trades);
+  //Parse existing cookies
+  if (hs.headers.cookie) {
+    var cookie = hs.headers.cookie;
+    var cookieObj = {};
+    var cookieArr = cookie.split(';');
+    for (index = 0; index < cookieArr.length; ++index) {
+      var cookieKV = cookieArr[index];
+      cookieKV = cookieKV.trim();
+      var cookieKVArr = cookieKV.split('=');
+      cookieObj[cookieKVArr[0]] = cookieKVArr[1];
+      //console.log(cookieObj.key);
+    }
+    if (cookieObj.key) {
+      Activeusers.find({ key: cookieObj.key }, function (err, docs) {
+        if (err) throw (err);
+        docs = docs[0];
+        // User authorized
+        //console.log(docs.user + ":" + docs.key);
+        myName = docs.user;
+        myNumber = userNumber;
+        // Log the connection
+        var pageload = new Pageviews({ 
+          ip: ipaddress.address,
+          time: time,
+          handle: myName
+        });
+        pageload.save(function (err) {
+          //if (err) // ...
+          console.log(myName+':'+myNumber+' connected');
+        });
+      });
+    }
   }
-  Historictrades.find({  user: myNumber }, function (err, historictrades) {
+
+  //Send user current data on connect
+  for (index = 0; index < symbols.length; ++index) { 
+      io.sockets.emit(symbols[index]+'_price', price[symbols[index]]);
+      io.sockets.emit(symbols[index]+'_chart', chart[symbols[index]]);
+  }
+  Historictrades.find({ user: myName }, function (err, historictrades) {
     //console.log(historictrades)
     socket.emit('historictrades', historictrades);
   });
-  socket.emit('ratios', ratio);
-  checknextTrade();
-},999);
 
-// open sockets to chrome
+// Assign the socket to a user array
+  users[myNumber] = socket;
+
+// Add the users banace to the global blanace array and let them know strait away
+  userbalance[myName] = 10;
+  socket.emit('userbal', userbalance[myName]);
+
+  // Emit any active trades on pageload
+  if (trades) {
+    socket.emit('activetrades', trades);
+  }
+
+  // Pass new trade details from the socket to addTrade
+  socket.on('trade', function (data) {
+    // Check if input data is valid
+    var re = new RegExp(/[\s\[\]\(\)=,"\/\?@\:\;]/g); 
+    if (re.test(data.amount)) { console.log('Illegal trade input from '+myName); } else {
+      // Push data to addTrade
+      console.log('add trade for ' + data.user);
+      addTrade(data.symbol, data.amount, data.direction, data.user, socket);
+      // Emit active trades again
+      socket.emit('activetrades', trades);
+    }
+  });
+
+  // Proto action socket listener
+  socket.on('action', function (data) {
+    console.log('action: '+data);
+  });
+  
+  // Create a general script updater
+  var updater = setInterval(function() {
+    socket.emit('userbal', userbalance[myName]); // Update userbalance
+    if (trades) {
+      socket.emit('activetrades', trades); // Update active trades
+    }
+    Historictrades.find({  user: myName }, function (err, historictrades) {
+      socket.emit('historictrades', historictrades); // Update historic trades
+    });
+    socket.emit('ratios', ratio); // Update ratios
+    io.sockets.emit('listing', getUsers()); // Update user listing
+    checknextTrade(); // Check for the next trade
+  },999); // Run every second
+
+
+// User functions
+  // Say hello
   socket.emit('hello', { hello: myName, id: myNumber });
  
+ // Emit trade objects
+  socket.emit('symbols', symbols);
   io.sockets.emit('totalcall', call);
   io.sockets.emit('totalput', put);
-
-  socket.emit('symbols', symbols);
   //io.sockets.emit('option', symbol);
   io.sockets.emit('offer', offer);
-  io.sockets.emit('expires', expires);
   
+  // Protochat
   socket.on('chat', function (message) {
     io.sockets.emit('chat', myName + ': ' + message);
   });  
-
-  // socket.on('validateemail', function (data) {
-  //   //var resp = userCheck(data.email);
-  //     User.findOne({ username: data.email }, function(err, user) {
-  //   if (err) throw err 
-  //     if (user){
-  //         socket.emit('validateemailresponce', 'Login');
-  //     } else {
-  //         socket.emit('validateemailresponce', 'Signup');
-  //     }
-  //     });
-  // });
-
-
-  // socket.on('login', function (data) {
-  //   if (data.password && data.email) {
-  //   User.findOne({ username: data.email }, function(err, user) {
-  //       if (err) throw err;
-  //       if (user) {
-  //       user.comparePassword(data.password, function(err, isMatch) {
-  //           if (err) throw err; socket.emit('loginreturn', err);
-  //             socket.emit('loginreturn', isMatch);
-  //       });
-  //     }
-  //   });
-  //   }
-  // });
-
   socket.on('message', function (data) {
     users[data.user] &&
       users[data.user].emit('message', myName + '-> ' + data.message); 
   });
-  
-  // remove user from ram on disconnect
+
+
+// User disconnects
   socket.on('disconnect', function () {
     console.log(myName+' disconnected');
-    users[myName] = null;
-    userbalance[myNumber] = null;
-    if (guest == true) {
-      Historictrades.remove({ user: myNumber }, function (err) {
-      if (err) return handleError(err);
-      // removed!
-      });
-    }
-    clearInterval(updator);
+    //users[myName] = null;
+    //userbalance[myName] = null;
+    // if (guest == true) {
+    //   Historictrades.remove({ user: myNumber }, function (err) {
+    //   if (err) throw(err);
+    //   });
+    // }
+    clearInterval(updater);
     io.sockets.emit('listing', getUsers());
   });
+
+
 });
+
+// Express webservice
 
 // Use the Views directory
 app.use('/', express.static(__dirname + '/views'));
@@ -694,30 +691,56 @@ app.get('/cookies/', function(req, res) {
   res.end();
 });
 
+app.get('/logout', function(req, res) {
+  res.clearCookie('key');
+  res.send('OK');
+  res.end();
+});
+
+// Login
 app.get('/login/:email/:password', function(req, res) {
+      // Get username and password variables
       var password = decodeURI(req.param('password', null));
       var email = decodeURI(req.param('email', null));
       //console.log('login request recieved: ' + email + ':' + password);
+          // Check if this username is in the userfilewall
           Userfirewall.count({username: email}, function(err, c){
             if (err) throw (err)
+            // If this user has less than 5 failed login attempts in the past hour
             if (c < 5) {
+              // If the username and password exist
               if (email && password) {
+                // Find the user in the database
                 User.findOne({ username: email }, function(err, user) {
                   if (err) throw err;
+                  // If user exits
                   if (user) {
-                   // test a matching password
+                   // Test the password
                     user.comparePassword(password, function(isMatch, err) {
                       if (err)  { throw (err); } else {
+                        // On success
                         if (isMatch == true) {
-                           //console.log(isMatch);
-                           res.cookie('key', 'signature', { maxAge: 360000, path: '/' });
+                          // Generate a signature
+                          var signature = randomString(32, 'HowQuicklyDaftJumpingZebrasVex');
+                          // Add it into a secured cookie
+                          res.cookie('key', signature, { maxAge: 8899999, path: '/', secure: true });
+                          // Add the username and signature to the database
+                          var userKey = new Activeusers({
+                            key: signature,
+                            user: email,
+                            createdAt: date
+                          });
+                          userKey.save(function(err) {
+                             if (err) { throw (err) }
+                            });
                            res.send("OK");
                         } else if (isMatch == false) {
+                          // On error
                           res.send("Invalid username or password.");
-                          var now = new Date();
+                          // Log the failed request
                           var loginRequest = new Userfirewall({
                             username: email,
-                            createdAt: now
+                            createdAt: date
                           });
                          loginRequest.save(function(err) {
                            if (err) { throw (err) }
@@ -731,18 +754,19 @@ app.get('/login/:email/:password', function(req, res) {
                 });
               }
             } else {
+              // Block brute force
               res.send("Too many requests.");
             }
           });
 });app.get('/login', function(req, res){
-  res.send('Usage: /login/{email}/{password}');
+  res.send('Let me explain: /login/{email}/{password}');
 });
 
 // Add a user
 app.get('/adduser/:username/:password', function(req, res, next){
   // Create a new blockchain address
-    var blockchainpass = Math.random().toString(36).slice(-8);
-    var blockchainuser = String(req.params.username);
+    var blockchainpass = randomString(32, 'HowQuicklyDaftJumpingZebrasVex'); // Random pass
+    var blockchainuser = String(req.params.username); // Username
     blockchain.newAddress({second_password: blockchainpass, label: blockchainuser}, function(err, data) {
       if(err) throw err;
   // create a user a new user
@@ -755,13 +779,13 @@ app.get('/adduser/:username/:password', function(req, res, next){
     });
   // save user to database
   newUser.save(function(err) {
-    if (err) {
+    if (err) { // Something goes wrong
       // clean up the blockchain
       blockchain.archiveAddress(blockchainaddress, function(err, data) {
         if (err) throw(err)
       });
       switch(err.code){
-        case 11000:
+        case 11000: // Username exists
         res.send('Username Taken');
       break
         default:
@@ -779,23 +803,7 @@ app.get('/adduser/:username', function(req, res, next){
   res.send('Specify an Email and Password<br />/adduser/{username}/{password}');
 });
 
-
-// passport.use(new LocalStrategy(
-//   function(username, password, done) {
-//     User.findOne({ username: username }, function (err, user) {
-//       if (err) { return done(err); }
-//       if (!user) {
-//         return done(null, false, { message: 'Incorrect username.' });
-//       }
-//       if (!user.comparePassword(password)) {
-//         return done(null, false, { message: 'Incorrect password.' });
-//       }
-//       return done(null, user);
-//     });
-//   }
-// ));
-
-// Load account and finance pages
+// Load subpages
 app.get('/account/', function(req, res, next){
   //res.send(req.params.id);
   res.sendfile('views/a.html');
@@ -805,7 +813,12 @@ app.get('/finance/', function(req, res, next){
   res.sendfile('views/f.html');
 });
 
+// function wasteland */
 
+function round(num, places) {
+    var multiplier = Math.pow(10, places);
+    return Math.round(num * multiplier) / multiplier;
+}
 
 function isNumber(n) {
   return !isNaN(parseFloat(n)) && isFinite(n);
@@ -836,9 +849,11 @@ function symbolswitch(symbol){
   return symbol;
 }
 
-// with the force of a thousand suns 
-var exec = require('child_process').exec;
-
+function randomString(length, chars) {
+    var result = '';
+    for (var i = length; i > 0; --i) result += chars[Math.round(Math.random() * (chars.length - 1))];
+    return result;
+}
 // Function to add custom formats to dates in milliseconds
 Date.prototype.customFormat = function(formatString){
     var YYYY,YY,MMMM,MMM,MM,M,DDDD,DDD,DD,D,hhh,hh,h,mm,m,ss,s,ampm,AMPM,dMod,th;
