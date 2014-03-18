@@ -143,7 +143,7 @@ var symbols = ['BTCUSD', 'EURUSD', 'GBPUSD', 'JPYUSD', '^DJI', 'CLJ14.NYM', 'GCJ
     socket.on('hello', function (data) {
       $('.username').html(data.hello);
       showloginfield(data.hello);
-      console.log('hello:', data.hello+' '+data.id);
+      console.log('hello:', data.hello+':'+data.id);
       user = data.hello;
       userid = data.id; //
     });
@@ -484,6 +484,20 @@ $( ".usertrade" ).each(function( index ) {
     }
   });
 
+var sitename = $('.btnlogo .sitename').html();
+
+  socket.on('connect_failed', function () {
+    $('.btnlogo').removeClass('btn-warning').addClass('btn-danger');
+    $('.btnlogo .sitename').html('Lost Connection');
+  })
+  socket.on('reconnect', function () {
+    $('.btnlogo').removeClass('btn-danger').addClass('btn-success');
+    $('.btnlogo .sitename').html('Reconnected');
+    setTimeout(function(){
+      $('.btnlogo').removeClass('btn-success').removeClass('btn-danger').addClass('btn-warning');
+      $('.btnlogo .sitename').html(sitename);
+    },3000);
+  })
 
   $('.loginbtn').click(function (e) {
     e.preventDefault();

@@ -556,8 +556,7 @@ io.sockets.on('connection', function (socket) {
         docs = docs[0];
         // User authorized
         //console.log(docs.user + ":" + docs.key);
-        myName = docs.user;
-        myNumber = userNumber;
+
         // Log the connection
         var pageload = new Pageviews({ 
           ip: ipaddress.address,
@@ -566,11 +565,13 @@ io.sockets.on('connection', function (socket) {
         });
         pageload.save(function (err) {
           //if (err) // ...
+          myName = docs.user;
+          myNumber = userNumber;
           console.log(myName+':'+myNumber+' connected');
         });
       });
+      }
     }
-  }
 
   //Send user current data on connect
   for (index = 0; index < symbols.length; ++index) { 
@@ -629,6 +630,7 @@ io.sockets.on('connection', function (socket) {
 
 // User functions
   // Say hello
+  console.log('hello ' + myName + ':' + myNumber)
   socket.emit('hello', { hello: myName, id: myNumber });
  
  // Emit trade objects
