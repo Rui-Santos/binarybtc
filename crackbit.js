@@ -573,6 +573,10 @@ io.sockets.on('connection', function (socket) {
       }
     }
 
+  // Say hello
+  console.log('hello ' + myName + ':' + myNumber)
+  socket.emit('hello', { hello: myName, id: myNumber });
+
   //Send user current data on connect
   for (index = 0; index < symbols.length; ++index) { 
       io.sockets.emit(symbols[index]+'_price', price[symbols[index]]);
@@ -629,9 +633,6 @@ io.sockets.on('connection', function (socket) {
 
 
 // User functions
-  // Say hello
-  console.log('hello ' + myName + ':' + myNumber)
-  socket.emit('hello', { hello: myName, id: myNumber });
  
  // Emit trade objects
   socket.emit('symbols', symbols);
