@@ -101,11 +101,11 @@ var symbols = ['BTCUSD', 'EURUSD', 'GBPUSD', 'JPYUSD', '^DJI', 'CLJ14.NYM', 'GCJ
 var bank = 100;
 var put = 0;
 var call = 0;
-var maxamount = 10; // the max amount a user can set for any one trade
+var maxamount = 75; // the max amount a user can set for any one trade
 //var maxoffset = 10; // the max difference (in currency) between calls/puts on a symbol before shaping (zero to disable)
 var cuttrading = 0; // seconds before trading where the user is locked out from adding a trade (zero to disable)
 var offer = 0.75;
-var tradeevery = 10; // Default time in minutes before trading again
+var tradeevery = 5; // Default time in minutes before trading again
 var userNumber = 1;
 var userbalance = new Array();
 var trades = new Array();
@@ -241,7 +241,8 @@ function trade() {
   Activetrades.remove({}, function(err) {
   if (err) console.log(err);  
   });
-  console.log('$'+bank);
+      console.log('$'+bank);
+      io.sockets.emit('bank', bank);
 }
 
 // Add a trade for a user
@@ -539,9 +540,10 @@ io.sockets.on('connection', function (socket) {
   var ipaddress = hs.address; //ipaddress.address/ipaddress.port
   ipaddress = ipaddress.address;
 
-  checkcookie(socket, function(myName, isloggedin) { 
+  // Check the users cookie key
+  checkcookie(socket, function(myName, isloggedin) { // isloggedin = true/false
+    // Run the script securely
 
-console.log(ipaddress+' is logged in: '+isloggedin);
   myNumber = userNumber++;
   if (!myName) { myName = 'Guest'+myNumber; } 
 
@@ -550,7 +552,7 @@ console.log(ipaddress+' is logged in: '+isloggedin);
 
 // Add the users banace to the global blanace array and let them know strait away
   if (userbalance[myName] == null) { 
-  userbalance[myName] = 10;
+  userbalance[myName] = 100;
   }
   socket.emit('userbal', userbalance[myName]);
 
@@ -823,7 +825,7 @@ var result = null;
         docs = docs[0];
         // User authorized
         if (docs) {
-          console.log(docs.user + ":" + docs.key);
+          //console.log(docs.user + ":" + docs.key);
           next(docs.user, true);
             //console.log(myName+':'+myNumber+' connected');
           // Log the connection

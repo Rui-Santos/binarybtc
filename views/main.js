@@ -147,7 +147,7 @@ var symbols = ['BTCUSD', 'EURUSD', 'GBPUSD', 'JPYUSD', '^DJI', 'CLJ14.NYM', 'GCJ
     socket.on('hello', function (data) {
       $('.username').html(data.hello);
       showloginfield(data.hello);
-      console.log('hello:', data.hello+':'+data.id);
+      console.log('hello:', data.hello+':id'+data.id);
       user = data.hello;
       userid = data.id; //
     });
@@ -397,7 +397,7 @@ $( ".usertrade" ).each(function( index ) {
         entrydate = entrydate.customFormat( "#DD#/#MM#/#YYYY#" );
 
 
-        if (tid < 5) {
+        if (tid < 9000) {
         tradehtml = tradehtml + '<tr class="historictrade" id="'+entry._id+'">' +
                     '<td class="symbol">'+entry.symbol+'</td>'+
                     '<td>'+entrydate+'</td>'+
@@ -435,6 +435,10 @@ $( ".usertrade" ).each(function( index ) {
             user : user
           });
       });
+
+        socket.on('bank', function (data) {
+          console.log('Bank: '+data);
+        });
 
          socket.on('nexttrade', function (data) {
            data[1] = ('0' + data[1]).slice(-2)
@@ -532,7 +536,7 @@ var sitename = $('.btnlogo .sitename').html();
 
   socket.on('tradingopen', function (data) {
     var tradingopen = data;
-    console.log(tradingopen);
+    //console.log(tradingopen);
   });
 
 
