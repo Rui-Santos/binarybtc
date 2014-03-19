@@ -109,6 +109,8 @@ var tradeevery = 10; // Default time in minutes before trading again
 var userNumber = 1;
 var userbalance = new Array();
 var trades = new Array();
+var signupsopen = true; // Allow signups?
+var tradingopen = false; // Allow trading? -proto
 var users = {};
 var price = {};
 var ratio = {};
@@ -537,10 +539,11 @@ io.sockets.on('connection', function (socket) {
   var ipaddress = hs.address; //ipaddress.address/ipaddress.port
   ipaddress = ipaddress.address;
 
-  var isloggedin = checkcookie(socket);
+  checkcookie(socket, function(myName, isloggedin) { 
+
 console.log(ipaddress+' is logged in: '+isloggedin);
   myNumber = userNumber++;
-  myName = 'Guest'+myNumber;
+  if (!myName) { myName = 'Guest'+myNumber; } 
 
 // Assign the socket to a user array
   users[myNumber] = socket;
@@ -598,6 +601,7 @@ console.log(ipaddress+' is logged in: '+isloggedin);
     Historictrades.find({  user: myName }, function (err, historictrades) {
       socket.emit('historictrades', historictrades); // Update historic trades
     });
+    io.sockets.emit('tradingopen', tradingopen); // Update trading status
     socket.emit('ratios', ratio); // Update ratios
     io.sockets.emit('listing', getUsers()); // Update user listing
     checknextTrade(); // Check for the next trade
@@ -638,6 +642,7 @@ console.log(ipaddress+' is logged in: '+isloggedin);
   });
 
 
+  });
 });
 
 // Express webservice
@@ -739,11 +744,14 @@ app.get('/login/:email/:password', function(req, res) {
 
 // Add a user
 app.get('/adduser/:username/:password', function(req, res, next){
+if (signupsopen == true) {
+
   // Create a new blockchain address
     var blockchainpass = randomString(32, 'HowQuicklyDaftJumpingZebrasVex'); // Random pass
     var blockchainuser = String(req.params.username); // Username
-    blockchain.newAddress({second_password: blockchainpass, label: blockchainuser}, function(err, data) {
-      if(err) throw err;
+    blockchain.newAddress({second_password: blockchainpass, label: blockchainuser}, 
+    function(err, data) {
+      if(err) {throw err; console.log('Error on a new Blockchain: ' + err); }
   // create a user a new user
     var blockchainaddress = data.address;
     var newUser = new User({
@@ -759,6 +767,7 @@ app.get('/adduser/:username/:password', function(req, res, next){
       blockchain.archiveAddress(blockchainaddress, function(err, data) {
         if (err) throw(err)
       });
+
       switch(err.code){
         case 11000: // Username exists
         res.send('Username Taken');
@@ -768,9 +777,13 @@ app.get('/adduser/:username/:password', function(req, res, next){
         }
     } else {
       res.send('OK');
+
     }
     });
-});
+  });
+} else {
+  res.send('Signups are not open at this time.');
+}
 });
 app.get('/adduser/:username', function(req, res, next){
   res.send('Specify a Password<br />/adduser/{username}/{password}');
@@ -790,11 +803,11 @@ app.get('/finance/', function(req, res, next){
 
 // function wasteland */
 
-function checkcookie(socket) {
+function checkcookie(socket, next) {
 var result = null;
   //Parse existing cookies
   if (socket.handshake.headers.cookie) {
-    var cookie = hs.headers.cookie;
+    var cookie = socket.handshake.headers.cookie;
     var cookieObj = {};
     var cookieArr = cookie.split(';');
     for (index = 0; index < cookieArr.length; ++index) {
@@ -810,12 +823,12 @@ var result = null;
         docs = docs[0];
         // User authorized
         if (docs) {
-          //console.log(docs.user + ":" + docs.key);
-            result = {user: docs.user, number: userNumber};
+          console.log(docs.user + ":" + docs.key);
+          next(docs.user, true);
             //console.log(myName+':'+myNumber+' connected');
           // Log the connection
           var pageload = new Pageviews({ 
-            ip: ipaddress.address,
+            ip: socket.handshake.address.address,
             time: time,
             handle: myName
           });
@@ -827,8 +840,7 @@ var result = null;
       });
       }
     } // if cookie
-return result;
-}
+  }
 
 
 function round(num, places) {

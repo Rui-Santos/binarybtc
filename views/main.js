@@ -26,7 +26,7 @@ function symbolSwitch(symbol) {
     return symbol;
 }
 
-
+var tradingopen = true;
 
 var autocolor = 1;
 function uitradeico(symbol, direction, manual) {
@@ -41,7 +41,7 @@ var option = new Array();
 function displayOptions(displaysymbols) {
   $.each(displaysymbols, function( index, symbol ) {
     symbol = symbolSwitch(symbol);
-    var open = '<div class="controls" id="'+symbol+'">'+
+    var show = '<div class="controls" id="'+symbol+'">'+
         '<div class="progress progress'+symbol+' vertical">'+
             '<div class="progress-bar progress-bar-success" role="progressbar" aria-valuetransitiongoal="0"></div>'+
         '</div>'+
@@ -75,10 +75,14 @@ function displayOptions(displaysymbols) {
           '</div>'+
          '</div>'+
         '<span class="tradewarning">You cannot cancel a trade.</span>';
-    var closed = '<div class="nooffer"><i class="fa fa-lock" style="font-size: 25px;"></i><br />Trading is Closed <br />'+symbol+':<span class="keystone'+symbol+'"></span></div>';
+    var lock = '<div class="nooffer"><i class="fa fa-lock" style="font-size: 25px;"></i><br />Trading is Closed <br />'+symbol+':<span class="keystone'+symbol+'"></span></div>';
 
     //if trading is allowed on this symbol
-    var renderoffer = open;
+    if (tradingopen) {
+    var renderoffer = show;
+    } else {
+    var renderoffer = lock;
+    }
 
     if (index > 0){
     var header = '<div class="header" style="border-top: 1px solid #eee;">'+symbol+'</div>';
@@ -95,7 +99,7 @@ function displayOptions(displaysymbols) {
          '</div>'+
          '<div style="clear:both;"></div>'+
         '</div>');
-       $(".symbols").prepend(option[index]);
+       $(".symbols").append(option[index]);
       });
   }
 function showloginfield(username) {
@@ -246,12 +250,12 @@ var publictrades = true;
     //console.log(data);
     $('.tradesbody').html('');
     if (data[0] != null) {
-      var tradehtml = '<div class="header">Your Active Trades <span style="float:right;"><i class="fa fa-clock-o"></i> <span class="expiretime"></span></span></div>';
+      var tradehtml = '<div class="usertrades"><div class="header">Your Active Trades <span style="float:right;"><i class="fa fa-clock-o"></i> <span class="expiretime"></span></span></div>';
     } else {
-      var tradehtml = '<div class="header">No Active Trades</div>';
+      var tradehtml = '<div class="usertrades"><div class="header">No Active Trades</div>';
     }
     
-           tradehtml = tradehtml + '<div><table class="table tradestable" id="trades">';
+           tradehtml = tradehtml + '<div class="row-fluid"><div class="span12 "><div><table class="table tradestable" id="trades">';
               // '<thead>' +
               //   '<tr>' +
               //     '<th class="symbol">Symbol</th>' +
@@ -305,7 +309,7 @@ var publictrades = true;
         // }
       }
     }
-    tradehtml = tradehtml + '</tbody></table></div>';
+    tradehtml = tradehtml + '</tbody></table></div></div></div></div>';
      $('.tradestable').html(tradehtml);
 
 $( ".usertrade" ).each(function( index ) {
@@ -349,12 +353,12 @@ $( ".usertrade" ).each(function( index ) {
     var tid = 0;
     $('.historictrades').html('');
     if (data[0] != null) {
-      var tradehtml = '<div class="header">Trade History</div>';
+      var tradehtml = '<div class="userblock"><div class="header">Trade History</div>';
     } else {
-      var tradehtml = '<div class="header">Trade History</div>';
+      var tradehtml = '<div class="userblock"><div class="header">Trade History</div>';
     }
     
-    tradehtml = tradehtml + '<div><table class="table" id="historictrades">';
+    tradehtml = tradehtml + '<div class="row-fluid"><div class="span12"><div><table class="table" id="historictrades">';
     tradehtml = tradehtml + '<tbody>';
     var index;
     for (index = 0; index < data.length; ++index) {
@@ -413,7 +417,7 @@ $( ".usertrade" ).each(function( index ) {
       }
       tid++;
     }
-    tradehtml = tradehtml + '</tbody></table></div>';
+    tradehtml = tradehtml + '</div></div></div></tbody></table></div>';
     $('.historictrades').html(tradehtml);
 });
 
@@ -524,6 +528,11 @@ var sitename = $('.btnlogo .sitename').html();
 
   socket.on('loginreturn', function (data) {
     console.log(data);
+  });
+
+  socket.on('tradingopen', function (data) {
+    var tradingopen = data;
+    console.log(tradingopen);
   });
 
 
@@ -777,7 +786,7 @@ function showFinances() {
 }
 
   $('.header').click(function(e) {
-    e.preventDefault();
+    //e.preventDefault();
     $(this).disableSelection();
     $(this).next().toggleClass('hideme');
   });
