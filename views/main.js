@@ -442,7 +442,9 @@ $( ".usertrade" ).each(function( index ) {
 
          socket.on('nexttrade', function (data) {
            data[1] = ('0' + data[1]).slice(-2)
-            $('.expiretime').html(data[0] + ':' + data[1]);
+            if (data[0] && data[1]) {
+              $('.expiretime').html(data[0] + ':' + data[1]);
+            }
           });     
 
          socket.on('tradeadded', function (symbol) {
@@ -494,13 +496,13 @@ $( ".usertrade" ).each(function( index ) {
 
 var sitename = $('.btnlogo .sitename').html();
 
-  socket.on('connect_failed', function () {
+  socket.on('disconnect', function () {
     $('.btnlogo').removeClass('btn-warning').addClass('btn-danger');
-    $('.btnlogo .sitename').html('Lost Connection');
+    $('.btnlogo .sitename').html('<span class="glyphicon glyphicon-warning-sign"></span> Lost Connection');
   })
   socket.on('reconnect', function () {
-    $('.btnlogo').removeClass('btn-danger').addClass('btn-success');
-    $('.btnlogo .sitename').html('Reconnected');
+    $('.btnlogo').removeClass('btn-warning').removeClass('btn-danger').addClass('btn-success');
+    $('.btnlogo .sitename').html('<span class="glyphicon glyphicon-lock"></span> Reconnected');
     setTimeout(function(){
       $('.btnlogo').removeClass('btn-success').removeClass('btn-danger').addClass('btn-warning');
       $('.btnlogo .sitename').html(sitename);

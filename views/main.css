@@ -186,7 +186,7 @@ display: table-cell;
         }
 .progress-bar-success {
 background-color: hsl(113, 100%, 35%);
-border-bottom: 3px solid #eee;
+border-bottom: 1px solid #eee;
 }
 
         .hide {
