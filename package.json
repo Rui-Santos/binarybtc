@@ -1,8 +1,8 @@
 {
   "name": "binarybtc",
-  "version": "0.0.5",
+  "version": "0.0.4",
   "description": "Bitcoin Binary Options",
-  "main": "crackbit.js",
+  "main": "binarybtc.js",
   "dependencies": {
     "bcrypt": "~0.7.7",
     "bitcoin": "~1.5.0",
@@ -29,8 +29,5 @@
   "bugs": {
     "url": "https://github.com/bentbot/binarybtc/issues"
   },
-  "homepage": "https://github.com/bentbot/binarybtc",
-  "keywords": [
-    "bitcoin"
-  ]
+  "homepage": "https://github.com/bentbot/binarybtc"
 }

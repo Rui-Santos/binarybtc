@@ -856,7 +856,7 @@ float: left;
 }#email, #password {
   width: 77px !important;
 }.sitename {
-  display: none;
+  /* display: none;*/ 
 }
 .tradewarning {
 font-size: 11px;

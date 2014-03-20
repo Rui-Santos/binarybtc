@@ -1,1 +1,1 @@
-web: node crackbit.js
+web: node binarybtc.js

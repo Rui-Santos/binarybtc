@@ -102,7 +102,7 @@ var bank = 200;
 var put = 0;
 var call = 0;
 var maxamount = 75; // the max amount a user can set for any one trade
-//var maxoffset = 10; // the max difference (in currency) between calls/puts on a symbol before shaping (zero to disable)
+var maxoffset = { bottom: 60, top: 40 }; 
 var cuttrading = 0; // seconds before trading where the user is locked out from adding a trade (zero to disable)
 var offer = 0.75;
 var tradeevery = 5; // Default time in minutes before trading again
@@ -114,6 +114,7 @@ var tradingopen = false; // Allow trading? -proto
 var users = {};
 var price = {};
 var ratio = {};
+var balance = {};
 var calls = {};
 var puts = {};
 var totalcall = {};
@@ -125,10 +126,8 @@ var date,time = 0;
 var clock = setInterval(function() {
   time = new Date().getTime();
   date = new Date();
-  //console.log(Date(time));
   io.sockets.emit('servertime', time);
 }, 1000);
-
 
 // The wild-west of functions
 
@@ -161,6 +160,7 @@ function userFetch(username, password) {
 });
 }
 
+
 // Master trade function
 function trade() {
   var index;//Loop the trades
@@ -182,30 +182,50 @@ function trade() {
           outcome = 'Win';//Win
           winnings = (+amount+(amount*offer));
           userbalance[tradeuser] = round((+userbalance[tradeuser] + winnings), 2);
-          bank = (bank-amount);
-
+          bank = (+bank-(amount*offer));
+          socket.emit('alertuser', {
+            color: color,
+            message: 'You won '+winnings+' on '+tradesymbol+''
+          });
         } else if (tradeprice < price[tradesymbol]) {
           outcome = 'Lose';//Lose
           bank = (bank+amount);
-
+          socket.emit('alertuser', {
+            color: color,
+            message: 'You won '+winnings+' on '+tradesymbol+''
+          });
         } else if (tradeprice == price[tradesymbol]) {
           outcome = 'Tie';// Tie
-          userbalance[tradeuser] = (+userbalance[tradeuser] + amount);
+          userbalance[tradeuser] = (+userbalance[tradeuser] + amount);  
+          socket.emit('alertuser', {
+            color: color,
+            message: 'You won '+winnings+' on '+tradesymbol+''
+          });        
         }
       } else if (direction == 'Call'){
         if (tradeprice < price[tradesymbol]){
           outcome = 'Win';//Win
           winnings = (amount+(amount*offer));
           userbalance[tradeuser] = round((+userbalance[tradeuser] + winnings), 2);
-          bank = (bank-amount);
-
+          bank = (bank-(amount*offer));
+          socket.emit('alertuser', {
+            color: color,
+            message: 'You won '+winnings+' on '+tradesymbol+''
+          });
         } else if (tradeprice > price[tradesymbol]) {
           outcome = 'Lose';//Lose
-          bank = (bank+amount);
-
+          bank = (bank+amount);  
+          socket.emit('alertuser', {
+            color: color,
+            message: 'You won '+winnings+' on '+tradesymbol+''
+          });
         } else if (tradeprice == price[tradesymbol]) {
           outcome = 'Tie';// Tie
           userbalance[tradeuser] = (+userbalance[tradeuser] + amount);
+          socket.emit('alertuser', {
+            color: color,
+            message: 'You won '+winnings+' on '+tradesymbol+''
+          });        
         }
       }
 
@@ -229,7 +249,7 @@ function trade() {
     dbhistorictrades.save(function (err) {
       if (err) console.log(err)
     });
-  ratio = { tradesymbol : 50 };
+  ratio[tradesymbol] = 50;
     }//foreach trade
   // empty the ram and database of old objects
   calls = {};
@@ -248,6 +268,7 @@ function trade() {
 function addTrade(symbol, amount, direction, user, socket) {
   var err = {};
   symbol = symbolswitch(symbol);
+
   // Check the amount
   if (amount > 0) {
   // Check the direction and make sure price[symbol] exists
@@ -258,92 +279,113 @@ function addTrade(symbol, amount, direction, user, socket) {
     if (amount <= maxamount) {
       // Check if the amount is over the user balance
       if (userbalance[user] >= amount) {
-      // Get the server time from the global clock
-      var now = time;
-      // Update the user balance
-      userbalance[user] = round((userbalance[user]-amount), 2);
-      // Announe the trade
-      console.log('New trade:'+user +':'+ symbol+':'+direction+':'+amount);
-      // Adjust the totals
-      if (direction == 'Call') {
-        if (calls[symbol]) {calls[symbol]++;}else {calls[symbol] = 1}
-        if (totalcall.symbol) {
-          var totalcallsi= Number(totalcall.symbol) + Number(amount);
+
+        if (direction == 'Call' && ratio[symbol] > maxoffset.bottom) {
+          // The direction is invalid
+              err.sym = symbol;
+              err.msg = 'Call';
+              socket.emit('tradeerror', err);
+          return false;
+        }else if (direction == 'Put' && ratio[symbol] < maxoffset.top) {
+          // The direction is invalid
+              err.sym = symbol;
+              err.msg = 'Put';
+              socket.emit('tradeerror', err);
+              return false;
         } else {
-          var totalcallsi= Number(amount);
-        }
-        totalcall = { symbol: totalcallsi };
-      } if (direction == 'Put') {
-          if (puts[symbol]) { puts[symbol]++; }else {puts[symbol] = 1}
-        if (totalput.symbol) {
-          var totalputsi= Number(totalput.symbol) + Number(amount);
-        } else {
-          var totalputsi= Number(amount);
-        }
-        totalput = { symbol: totalputsi };
+          var now = time;
+          // Update the user balance
+          userbalance[user] = round((userbalance[user]-amount), 2);
+
+          // Adjust the totals
+          if (direction == 'Call') {
+            if (calls[symbol]) {calls[symbol]++;}else {calls[symbol] = 1}
+            if (totalcall.symbol) {
+              var totalcallsi= Number(totalcall.symbol) + Number(amount);
+            } else {
+              var totalcallsi= Number(amount);
+            }
+            totalcall = { symbol: totalcallsi };
+          } if (direction == 'Put') {
+              if (puts[symbol]) { puts[symbol]++; }else {puts[symbol] = 1}
+            if (totalput.symbol) {
+              var totalputsi= Number(totalput.symbol) + Number(amount);
+            } else {
+              var totalputsi= Number(amount);
+            }
+            totalput = { symbol: totalputsi };
+          }
+          if (!totalcall.symbol) { totalcall.symbol = 0; }
+          if (!totalput.symbol) { totalput.symbol = 0; }
+
+            // Adjust the ratios
+          var t = Number(totalcall.symbol) + Number(totalput.symbol);
+          console.log('Total '+symbol+' pot $'+t);
+          ratio[symbol] = round(Number(totalcall.symbol) / Number(t) * 100);
+
+
+          // Insert the trade into the database
+          var dbactivetrades = new Activetrades({ 
+            symbol: symbol,
+            price: price[symbol],
+            offer: offer,
+            amount: amount,
+            direction: direction,
+            time: now,
+            user: user
+          });
+          dbactivetrades.save(function (err) {
+            if (err) throw (err);
+            // Announe the trade
+            console.log('New trade:'+user +':'+ symbol+':'+direction+':'+amount);
+            console.log('Total Call '+symbol+':'+totalcall.symbol);
+            console.log('Total Put '+symbol+':'+totalput.symbol);
+            console.log('Ratio '+symbol+' %'+ratio[symbol]);
+              // Inser the trade into the ram
+              var valueToPush = new Array();
+              valueToPush[0] = symbol;
+              valueToPush[1] = price[symbol];
+              valueToPush[2] = offer;
+              valueToPush[3] = amount;
+              valueToPush[4] = direction;
+              valueToPush[5] = now;
+              valueToPush[6] = user;
+              trades.push(valueToPush);
+              socket.emit('ratios', ratio);
+              socket.emit('tradeadded', symbol);
+              socket.emit('activetrades', trades);
+              a++;
+              return true;
+          });
       }
-      if (!totalcall.symbol) { totalcall.symbol = 0; }
-      if (!totalput.symbol) { totalput.symbol = 0; }
-
-        console.log('Total Call '+symbol+':'+totalcall.symbol);
-        console.log('Total Put '+symbol+':'+totalput.symbol);
-      // Adjust the ratios
-      var t = Number(totalcall.symbol) + Number(totalput.symbol);
-        console.log('Total '+symbol+' pot $'+t);
-      ratio[symbol] = round(Number(totalcall.symbol) / Number(t) * 100);
-        console.log('Ratio '+symbol+' %'+ratio[symbol]);
-
-      // Insert the trade into the database
-      var dbactivetrades = new Activetrades({ 
-        symbol: symbol,
-        price: price[symbol],
-        offer: offer,
-        amount: amount,
-        direction: direction,
-        time: now,
-        user: user
-      });
-      dbactivetrades.save(function (err) {
-      });
-
-      // Inser the trade into the ram
-      var valueToPush = new Array();
-      valueToPush[0] = symbol;
-      valueToPush[1] = price[symbol];
-      valueToPush[2] = offer;
-      valueToPush[3] = amount;
-      valueToPush[4] = direction;
-      valueToPush[5] = now;
-      valueToPush[6] = user;
-      trades.push(valueToPush);
-      socket.emit('ratios', ratio);
-      socket.emit('tradeadded', symbol);
-      socket.emit('activetrades', trades);
-      a++;
     } else {
       // The amount is larger than the user's balance
       err.sym = symbol;
       err.msg = '';
       socket.emit('tradeerror', err);
+      return false;
     } // err
   } else {
     // The amount is over the max ammount
     err.sym = symbol;
-    err.msg = '';
+    err.msg = 'High';
     socket.emit('tradeerror', err);
+    return false;
   }
   } else {
     // The direction is invalid
     err.sym = symbol;
     err.msg = '';
     socket.emit('tradeerror', err);
+    return false;
   }
   }else {
     // The amount is not over zero
     err.sym = symbol;
     err.msg = '';
     socket.emit('tradeerror', err);
-  }
+    return false;
+  } 
 }
 
 // Calculate the next trade
@@ -584,11 +626,10 @@ io.sockets.on('connection', function (socket) {
       io.sockets.emit(symbols[index]+'_price', price[symbols[index]]);
       io.sockets.emit(symbols[index]+'_chart', chart[symbols[index]]);
   }
-  Historictrades.find({ user: myName }, function (err, historictrades) {
+  Historictrades.find({ user: myName }, {limit: 5}, function (err, historictrades) {
     //console.log(historictrades)
     socket.emit('historictrades', historictrades);
   });
-
 
   // Emit any active trades on pageload
   if (trades) {
@@ -619,7 +660,7 @@ io.sockets.on('connection', function (socket) {
     if (trades) {
       socket.emit('activetrades', trades); // Update active trades
     }
-    Historictrades.find({  user: myName }, function (err, historictrades) {
+    Historictrades.find({  user: myName }, {limit: 5}, function (err, historictrades) {
       socket.emit('historictrades', historictrades); // Update historic trades
     });
     io.sockets.emit('tradingopen', tradingopen); // Update trading status

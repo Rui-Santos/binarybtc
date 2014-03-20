@@ -273,7 +273,7 @@ var publictrades = true;
       entry[0] = symbolSwitch(entry[0]);
 
 
-      if (entry[6] == userid || publictrades == true) {
+      if (entry[6] == user) {
         var possiblewin = (+entry[3]+(entry[3]*entry[2]));
         possiblewin = possiblewin.toFixed(2);
         var date = new Date(entry[5]);
@@ -350,6 +350,7 @@ $( ".usertrade" ).each(function( index ) {
 });
 
    socket.on('historictrades', function (data) {
+    var display = 5;
     var tid = 0;
     $('.historictrades').html('');
     if (data[0] != null) {
@@ -366,7 +367,7 @@ $( ".usertrade" ).each(function( index ) {
        //console.log(entry.symbol);
       entry.symbol = symbolSwitch(entry.symbol);
 
-      if (entry.user == userid || publictrades == true) {
+      if (entry.user == user) {
         var possiblewin = (+entry.amount+(entry.amount*entry.offer));
         possiblewin = possiblewin.toFixed(2);
         entry.price = Number(entry.price);
@@ -397,29 +398,28 @@ $( ".usertrade" ).each(function( index ) {
         entrydate = entrydate.customFormat( "#DD#/#MM#/#YYYY#" );
 
 
-        if (tid < 9000) {
+        //if (tid < display) {
         tradehtml = tradehtml + '<tr class="historictrade" id="'+entry._id+'">' +
                     '<td class="symbol">'+entry.symbol+'</td>'+
-                    '<td>'+entrydate+'</td>'+
+                    '<td>'+entrytime+'</td>'+
                     '<td>'+arrowhtml+' <span class="tradeprice">'+entry.price+'</span></td>'+
                     //'<td title="Expires: '+thisdate+' '+thistime+'">'+thistime+'</td>'+
                     '<td>'+thumbhtml+'</td>'+
                     //'<td class="bold" title="Expires: '+thisdate+' '+thistime+'">Trade in: <span class="expiretime"></span></td>'+
                   '</tr>';
-        }
-        //     if (lastprice > entry[1]) {
-        //   $('#trade'+index+'').removeClass('redbg').addClass('greenbg');
-        // } else if (lastprice < entry[1]) {
-        //   $('#trade'+index+'').removeClass('greenbg').addClass('redbg');
-        // } else {
-        //   $('#trade'+index+'').removeClass('greenbg').removeClass('redbg');
-        // }
-      }
+        //}
       tid++;
     }
+  }
     tradehtml = tradehtml + '</div></div></div></tbody></table></div>';
     $('.historictrades').html(tradehtml);
 });
+
+    $('.showallhistoric').click(function() {
+      $('.historictrade').each(function( index ) {
+        $(this).addClass('hide');
+      });
+    });
 
     $(".applytrade").click(function(e) {
           var symbol = $(this).parent().parent().attr('id');
@@ -442,7 +442,7 @@ $( ".usertrade" ).each(function( index ) {
 
          socket.on('nexttrade', function (data) {
            data[1] = ('0' + data[1]).slice(-2)
-            if (data[0] && data[1]) {
+            if (data[0] || data[1]) {
               $('.expiretime').html(data[0] + ':' + data[1]);
             }
           });     
@@ -541,6 +541,13 @@ var sitename = $('.btnlogo .sitename').html();
     //console.log(tradingopen);
   });
 
+socket.on('alertuser', function (data) {
+  if (data.color == 'green') {
+    showSuccess(data.message, data.trinket);
+  } else if (data.color == 'red') {
+    showDanger(data.message, data.trinket);
+  }
+});
 
 // Proto
     socket.on('listing', function (data) {
@@ -759,17 +766,65 @@ $(function() {
     //$('.controls .price .lock').html('<span class="glyphicon glyphicon-lock"></span>');
     var direction = 'put';
   });
+
+var headercounter = 0;
+  // $('.header').click(function(e) {
+  //   //e.preventDefault();
+  //   $(this).disableSelection();
+  //   $(this).next().toggleClass('hideme');
+  // });
+  $(".btnuser").click(function () {
+    if (headercounter != 1) {
+      headercounter = 1;
+      showAccount();
+    } else {
+      showSymbols();
+      headercounter = 0;
+    }
+  });
+  $(".btnfinance").click(function () {
+    if (headercounter != 2) {
+      headercounter = 2;
+      showFinances();
+    } else {
+      showSymbols();
+      headercounter = 0;
+    }
+  });
+  $(".btnlogo").click(function () {
+    headercounter = 0;
+    showSymbols();
+  });
+  $(".signupbtn").click(function () {
+    var email = $('#email').val();
+    var password = $('#password').val();
+    console.log(email + password);
+  });
+
 });
 
-
-
-
 function isOdd(num) { return num % 2;}
-$(function() {
-// page loaded
-var headercounter = 0;
 
-function showSymbols(){
+
+function showSuccess(msg, xp) {
+  $(".financestray").css('height', '0px');
+  $(".accounttray").css('height', '0px');    
+  $(".announcedanger").css('height', '0px');
+  $(".linktray").css('height', '0px');
+  $(".announcesuccess").css('height', 30);
+  $(".announcedanger").html(msg);
+}
+function showDanger(msg, xp) {
+  $(".financestray").css('height', '0px');
+  $(".accounttray").css('height', '0px');    
+  $(".announcesuccess").css('height', '0px');
+  $(".linktray").css('height', '0px');
+  $(".announcedanger").css('height', 30);
+  $(".announcedanger").html(msg);
+}
+
+
+function showSymbols() {
   $(".financestray").css('height', '0px');
   $(".accounttray").css('height', '0px');    
   $(".announcedanger").css('height', '0px');
@@ -789,105 +844,6 @@ function showFinances() {
   $(".announcesuccess").css('height', '0px');
   $(".financestray").css('height', 30);
   $(".linktray").css('height', '0px'); 
-}
-
-  $('.header').click(function(e) {
-    //e.preventDefault();
-    $(this).disableSelection();
-    $(this).next().toggleClass('hideme');
-  });
-
-  $(".btnlogo").click(function () {
-    headercounter = 0;
-    showSymbols();
-  });
-
-  $(".btnuser").click(function () {
-    console.log('user btn');
-    if (headercounter != 1) {
-    headercounter = 1;
-    showAccount();
-    } else {
-    showSymbols();
-    headercounter = 0;
-    }
-  });
-
-  $(".btnfinance").click(function () {
-    if (headercounter != 2) {
-    headercounter = 2;
-    showFinances();
-    } else {
-    showSymbols();
-    headercounter = 0;
-    }
-  });
-
-
-
-  $(".signupbtn").click(function () {
-    var email = $('#email').val();
-    var password = $('#password').val();
-    console.log(email + password);
-  });
-
-
-
-function showSuccess() {
-    $(".financestray").css('height', '0px');
-    $(".accounttray").css('height', '0px');    
-    $(".announcedanger").css('height', '0px');
-    $(".linktray").css('height', '0px');
-    $(".announcesuccess").css('height', 30);
-}
-function showDanger() {
-    $(".financestray").css('height', '0px');
-    $(".accounttray").css('height', '0px');    
-    $(".announcesuccess").css('height', '0px');
-    $(".linktray").css('height', '0px');
-    $(".announcedanger").css('height', 30);
-}
-
-
-$("#chattext").focus();
-var symbol = $(".controls").attr('id');
-// shake(); // the clouds
-// rake(); // the coins
-uitradeico(symbol, 1, 1);
-//enterCall(70);
-
-$('.introbutton').click(function() {
-multicoin.play();
-});
-
-});
-
-
-// sleezy marketing aside...
-function enterCall(val){
-$('#amount').val('');
-output = [],
-sNumber = val.toString();
-for (var i = 0, len = sNumber.length; i < len; i += 1) {
-    output.push(+sNumber.charAt(i));
-}
-var chars = '';
-for (var i = 0, len = output.length; i < len; i += 1) {
-chars = ''+chars +''+ output[i]+'';
- $('#amount').val(chars);    
-setTimeout(function(){
-    
-         
-    var offer = $('.rawoffer').html();
-    var amount = $("#amount").val();
-    if (amount > 0) {
-      var possiblewin = (+amount+(amount*offer));
-      $(".info h1").html("$" + possiblewin.toFixed(2));
-    } else {
-      $(".info h1").html(offer * 100 + "%");
-    }
-  },2500);
-}
 }
 
 
