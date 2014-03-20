@@ -18,4 +18,4 @@ Socket.io port: 3000
 Execution
 ---------------------
 
->node crackbit.js
+>node binarybtc.js
