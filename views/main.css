@@ -243,9 +243,9 @@ margin-top: 1px;
 }.linktray ul li.selected {
 background: ;
 }.linktray a {
-  color: white;
+  color: #333 !important;
 }.linktray a:hover {
-  color: white;
+  color: #333 !important;
   text-decoration: none;
 }.linktray a.red {
   color: red;
@@ -315,13 +315,21 @@ background: hsl(113, 100%, 35%) !important;
 width: 100%;
 overflow: hidden;
 position: relative;
-}.announcesuccess ul {
+}.announcesuccess .container {
+padding: 0px;
+position: relative;
+}.announcesuccess span {
+position: absolute;
+right: 0px;
+top: 7px;
+}
+.announcesuccess ul {
   /*max-width: 1000px;*/
 font-size: 14px;
 color: rgba(255, 255, 255, 1);
 text-shadow: 0px 0px 2px rgba(0, 0, 0, 0.3);
 margin: 0 auto;
-padding: 5px 5px 5px 0px;
+padding: 0px;
 float:left;
 list-style: none;
 }.announcesuccess ul li {
@@ -341,13 +349,21 @@ background: hsl(360, 100%, 35%) !important;
 width: 100%;
 overflow: hidden;
 position: relative;
-}.announcedanger ul {
+}.announcedanger .container {
+padding: 0px;
+position: relative;
+}.announcedanger span {
+position: absolute;
+right: 0px;
+top: 7px;
+}
+.announcedanger ul {
   /*max-width: 1000px;*/
 font-size: 14px;
 color: rgba(255, 255, 255, 1);
 text-shadow: 0px 0px 2px rgba(0, 0, 0, 0.3);
 margin: 0 auto;
-padding: 5px 5px 5px 0px;
+padding: 0px;
 float:left;
 list-style: none;
 }.announcedanger ul li {

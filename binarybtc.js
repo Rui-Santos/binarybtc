@@ -5,11 +5,12 @@ var port = 8080
   , http = require('http')
   , nowjs = require('now')
   , https = require('https')
-  , Keygrip = require('keygrip')
   , express = require('express')
   , mongoose = require('mongoose')
   , passport = require('passport')
+  , Keygrip = require('keygrip')
   , BlockchainWallet = require('blockchain-wallet')
+  , bitcoin = require('bitcoin')
   , LocalStrategy = require('passport-local').Strategy
   , StringDecoder = require('string_decoder').StringDecoder
 
@@ -25,6 +26,7 @@ fs.readFile('/home/node/keys/mongo.key', 'utf8', function (err,data) {
     console.log('Database connected on port 27017');
   });
 });
+
 
 // Setup database schemas and models
 var schema = new mongoose.Schema({ key: 'string', user: 'string', createdAt: { type: Date, expires: '1h' }});
@@ -66,6 +68,9 @@ app.configure(function() {
   app.use(passport.session());
   app.use(express.bodyParser());
 });
+app.engine('.html', require('ejs').__express);
+app.set('views', __dirname + '/views');
+app.set('view engine', 'html');
 // Create the server object
 var server = https.createServer(options, app).listen(port, function(){
   console.log("Express server listening on port " + port);
@@ -78,21 +83,11 @@ io.set('log level', 1); // reduce logging
 // User Middleware
 var User = require('user-model');
 
-// Blockchain Middleware
-var blockchain;
-fs.readFile('/home/node/keys/blockchainid.txt', 'utf8', function (err,data) {
-  if (err) {
-    return console.log(err);
-  }
-  var id = data.replace("\n", "").replace("\r", "");
-    fs.readFile('/home/node/keys/blockchain.key', 'utf8', function (err,data) {
-      if (err) {
-        return console.log(err);
-      }
-      var key = data.replace("\n", "").replace("\r", "");
-        blockchain = new BlockchainWallet(id, key);
-    });
-});
+var btc = require('bitcoinclient');
+//require('blockchain.js');
+// dump(1, 'liam');
+//console.log(balances);
+
 
 // Tradeserver Variables
               //Bitcoin   Euro      Pound    Yen       Dow     Oil           Gold        Silver  S&P 500   Nasdaq
@@ -102,15 +97,16 @@ var bank = 200;
 var put = 0;
 var call = 0;
 var maxamount = 75; // the max amount a user can set for any one trade
-var maxoffset = { bottom: 60, top: 40 }; 
+var maxoffset = { bottom: 75, top: 25 }; 
 var cuttrading = 0; // seconds before trading where the user is locked out from adding a trade (zero to disable)
 var offer = 0.75;
 var tradeevery = 5; // Default time in minutes before trading again
 var userNumber = 1;
 var userbalance = new Array();
+var blockchainadd = new Array();
 var trades = new Array();
 var signupsopen = true; // Allow signups?
-var tradingopen = false; // Allow trading? -proto
+var tradingopen = true; // Allow trading? -proto
 var users = {};
 var price = {};
 var ratio = {};
@@ -122,7 +118,8 @@ var totalput = {};
 var a = 0;
 
 // Global clock
-var date,time = 0;
+var date = 0;
+var time = 0;
 var clock = setInterval(function() {
   time = new Date().getTime();
   date = new Date();
@@ -183,24 +180,17 @@ function trade() {
           winnings = (+amount+(amount*offer));
           userbalance[tradeuser] = round((+userbalance[tradeuser] + winnings), 2);
           bank = (+bank-(amount*offer));
-          socket.emit('alertuser', {
-            color: color,
-            message: 'You won '+winnings+' on '+tradesymbol+''
-          });
+          //pay(winnings, tradeuser);
+          processTrade(tradeuser, outcome, winnings)
         } else if (tradeprice < price[tradesymbol]) {
           outcome = 'Lose';//Lose
-          bank = (bank+amount);
-          socket.emit('alertuser', {
-            color: color,
-            message: 'You won '+winnings+' on '+tradesymbol+''
-          });
+          //bank = (bank+amount);
+          processTrade(tradeuser, outcome, amount)
         } else if (tradeprice == price[tradesymbol]) {
           outcome = 'Tie';// Tie
+          //pay(amount, tradeuser);
           userbalance[tradeuser] = (+userbalance[tradeuser] + amount);  
-          socket.emit('alertuser', {
-            color: color,
-            message: 'You won '+winnings+' on '+tradesymbol+''
-          });        
+          processTrade(tradeuser, outcome, amount)      
         }
       } else if (direction == 'Call'){
         if (tradeprice < price[tradesymbol]){
@@ -208,24 +198,17 @@ function trade() {
           winnings = (amount+(amount*offer));
           userbalance[tradeuser] = round((+userbalance[tradeuser] + winnings), 2);
           bank = (bank-(amount*offer));
-          socket.emit('alertuser', {
-            color: color,
-            message: 'You won '+winnings+' on '+tradesymbol+''
-          });
+          //pay(winnings, tradeuser);
+          processTrade(tradeuser, outcome, winnings)
         } else if (tradeprice > price[tradesymbol]) {
           outcome = 'Lose';//Lose
-          bank = (bank+amount);  
-          socket.emit('alertuser', {
-            color: color,
-            message: 'You won '+winnings+' on '+tradesymbol+''
-          });
+          //bank = (bank+amount);  
+          processTrade(tradeuser, outcome, amount)
         } else if (tradeprice == price[tradesymbol]) {
           outcome = 'Tie';// Tie
           userbalance[tradeuser] = (+userbalance[tradeuser] + amount);
-          socket.emit('alertuser', {
-            color: color,
-            message: 'You won '+winnings+' on '+tradesymbol+''
-          });        
+          //pay(amount, tradeuser);
+          processTrade(tradeuser, outcome, amount)      
         }
       }
 
@@ -296,6 +279,7 @@ function addTrade(symbol, amount, direction, user, socket) {
           var now = time;
           // Update the user balance
           userbalance[user] = round((userbalance[user]-amount), 2);
+          //collect(amount, user);
 
           // Adjust the totals
           if (direction == 'Call') {
@@ -390,6 +374,9 @@ function addTrade(symbol, amount, direction, user, socket) {
 
 // Calculate the next trade
 function checknextTrade() {
+
+    time = new Date().getTime();
+  date = new Date();
   // Get minutes in the global date object [10:01:02AM]
   var mins = date.getMinutes(); // [01]
     mins = (59-mins) % tradeevery; // Trade every % ten minutes
@@ -403,8 +390,8 @@ function checknextTrade() {
   var nexttrade = [Number(mins),Number(secs)];  // Put the next trade in an array [8:58]
   io.sockets.emit('nexttrade', nexttrade); // Emit to chrome
   // If it's time to trade
-  if (mins == 0 && secs == 0){
-    trade();
+  if (nexttrade[0] == 0 && nexttrade[1] == 0){
+    //trade();
   }
 // Kindly reurn the next trade array
   return nexttrade;
@@ -601,32 +588,49 @@ io.sockets.on('connection', function (socket) {
   var ipaddress = hs.address; //ipaddress.address/ipaddress.port
   ipaddress = ipaddress.address;
 
+
+  var updater = setInterval(function() {
+    checknextTrade(); // Check for the next trade
+  },1000); // Run every second
+
+  
   // Check the users cookie key
   checkcookie(socket, function(myName, isloggedin) { // isloggedin = true/false
     // Run the script securely
+
+// Add the users banace to the global blanace array and let them know strait away
+
+  // bal(myName, function(balance) {
+  //   userbalance[myName] = balance;
+  //   socket.emit('userbal', userbalance[myName]);
+  // });
+
+if (!userbalance[myName]) {
+  userbalance[myName] = 15;
+}
+
+
+  //address(myName, function(add) {
+    blockchainadd[myName] = 'add';
+    //console.log(blockchainadd[myName]);
+  //});
 
   myNumber = userNumber++;
   if (!myName) { myName = 'Guest'+myNumber; } 
 
 // Assign the socket to a user array
-  users[myNumber] = socket;
-
-// Add the users banace to the global blanace array and let them know strait away
-  if (userbalance[myName] == null) { 
-  userbalance[myName] = 100;
-  }
-  socket.emit('userbal', userbalance[myName]);
+  users[myName] = socket;
 
   // Say hello
-  console.log('hello ' + myName + ':id' + myNumber + ':$' + userbalance[myName])
-  socket.emit('hello', { hello: myName, id: myNumber });
+  console.log('hello ' + myName + ' id' + myNumber + ' $' + userbalance[myName] + ' ' + blockchainadd[myName])
+  socket.emit('hello', { hello: myName, id: myNumber, btc: blockchainadd[myName] });
 
   //Send user current data on connect
   for (index = 0; index < symbols.length; ++index) { 
       io.sockets.emit(symbols[index]+'_price', price[symbols[index]]);
       io.sockets.emit(symbols[index]+'_chart', chart[symbols[index]]);
   }
-  Historictrades.find({ user: myName }, {limit: 5}, function (err, historictrades) {
+  Historictrades.find({ user: myName }, function (err, historictrades) {
     //console.log(historictrades)
     socket.emit('historictrades', historictrades);
   });
@@ -653,21 +657,25 @@ io.sockets.on('connection', function (socket) {
   socket.on('action', function (data) {
     console.log('action: '+data);
   });
-  
+
   // Create a general script updater
   var updater = setInterval(function() {
+    // bal(myName, function(balance) {
+    //   userbalance[myName] = balance;
+    //   socket.emit('userbal', balance);
+    // });
     socket.emit('userbal', userbalance[myName]); // Update userbalance
     if (trades) {
       socket.emit('activetrades', trades); // Update active trades
     }
-    Historictrades.find({  user: myName }, {limit: 5}, function (err, historictrades) {
+    Historictrades.find({  user: myName }, function (err, historictrades) {
       socket.emit('historictrades', historictrades); // Update historic trades
     });
+
     io.sockets.emit('tradingopen', tradingopen); // Update trading status
     socket.emit('ratios', ratio); // Update ratios
     io.sockets.emit('listing', getUsers()); // Update user listing
-    checknextTrade(); // Check for the next trade
-  },999); // Run every second
+  },1000); // Run every second
 
 
 // User functions
@@ -680,14 +688,13 @@ io.sockets.on('connection', function (socket) {
   io.sockets.emit('offer', offer);
   
   // Protochat
-  socket.on('chat', function (message) {
-    io.sockets.emit('chat', myName + ': ' + message);
-  });  
-  socket.on('message', function (data) {
-    users[data.user] &&
-      users[data.user].emit('message', myName + '-> ' + data.message); 
-  });
-
+  // socket.on('chat', function (message) {
+  //   io.sockets.emit('chat', myName + ': ' + message);
+  // });  
+  // socket.on('message', function (data) {
+  //   users[data.user] &&
+  //     users[data.user].emit('message', myName + '-> ' + data.message); 
+  // });
 
 // User disconnects
   socket.on('disconnect', function () {
@@ -704,7 +711,17 @@ io.sockets.on('connection', function (socket) {
   });
 
 
-  });
+  }); // Cookies
+
+var userpage = [];
+var displaysymbols = ['GCJ14.CMX'];
+
+if (!userpage[myName]){
+socket.emit('loadpage', {page: 'trade', symbol: displaysymbols});
+}
+//socket.emit('displaysymbols', displaysymbols);
+io.sockets.emit('tradingopen', tradingopen); // Update trading status
+
 });
 
 // Express webservice
@@ -713,24 +730,42 @@ io.sockets.on('connection', function (socket) {
 app.use('/', express.static(__dirname + '/views'));
 // Send index
 app.get('/', function(req,res) {
-  //res.cookie('user', 'liam@hogan.re', { maxAge: 3600000, path: '/' });
-  //res.cookie('login_token', +new Date(), { maxAge: 3600000, path: '/' });
-  res.sendfile('views/index.html');
+  res.render('index', {
+    symbol: 'GCJ14.CMX',
+    user: true,
+    activetrades: true,
+    historictrades: true,
+    col: 2
+  });  
+
+});
+app.get('/index', function(req, res) {
+    res.render('index', {
+    symbol: 'GCJ14.CMX',
+    user: true,
+    activetrades: true,
+    historictrades: true,
+    col: 2
+  });
+});
+
+app.get('/nexttrade/', function(req, res, next){
+  var nexttrade = checknextTrade();
+  res.send(nexttrade[0]+':'+nexttrade[1]);
 });
 // Proto
 app.get('/symbol/:id', function(req, res, next){
-  res.send(req.params.id);
-  //res.render('index.html');
+  res.render('index', {
+    symbol: req.params.id,
+    user: true,
+    activetrades: true,
+    historictrades: true,
+    col: 2
+  });
 });
 app.get('/trade/:id', function(req, res, next){
   res.send(req.params.id);
   //res.render('index.html');
-});
-
-app.get('/cookies/', function(req, res) {
-  res.cookie('user', 'leo', { maxAge: 3600000, path: '/' });
-  res.send('mmm');
-  res.end();
 });
 
 app.get('/logout', function(req, res) {
@@ -819,8 +854,7 @@ if (signupsopen == true) {
     var newUser = new User({
         username: req.params.username,
         password: req.params.password,
-        blockchain: blockchainaddress,
-        blockchainpass: blockchainpass
+        bitcoin: blockchainaddress
     });
   // save user to database
   newUser.save(function(err) {
@@ -903,6 +937,30 @@ var result = null;
       }
     } // if cookie
 }
+
+  function processTrade(tradeuser, outcome, amount) {
+
+    loginfo(); // Bitcoin info logger
+
+    socket = users[tradeuser];
+    if (outcome == 'Win') {
+    socket.emit('alertuser', {
+     color: 'green',
+      message: 'You won '+amount+''
+    });
+    } else if (outcome == 'Lose') {
+    socket.emit('alertuser', {
+     color: 'red',
+      message: 'You lost '+amount+''
+    });
+    } else if (outcome == 'Tie') {
+    socket.emit('alertuser', {
+     color: 'green',
+      message: 'Push for '+amount+''
+    });
+    }
+  }
+
 
 
 function round(num, places) {
