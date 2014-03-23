@@ -243,7 +243,7 @@ function trade() {
   Activetrades.remove({}, function(err) {
   if (err) console.log(err);  
   });
-      console.log('$'+bank);
+      console.log('$'+bank+' '+date);
       io.sockets.emit('bank', bank);
 }
 
@@ -391,7 +391,7 @@ function checknextTrade() {
   io.sockets.emit('nexttrade', nexttrade); // Emit to chrome
   // If it's time to trade
   if (nexttrade[0] == 0 && nexttrade[1] == 0){
-    //trade();
+    trade();
   }
 // Kindly reurn the next trade array
   return nexttrade;
@@ -940,7 +940,7 @@ var result = null;
 
   function processTrade(tradeuser, outcome, amount) {
 
-    loginfo(); // Bitcoin info logger
+    //loginfo(); // Bitcoin info logger
 
     socket = users[tradeuser];
     if (outcome == 'Win') {
